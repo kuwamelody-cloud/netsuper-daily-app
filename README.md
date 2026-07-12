@@ -1,12 +1,21 @@
-# ネットスーパー日報メモ v4（PWA版）
+# ネットスーパー業務記録 v5 PWA
 
-GitHub Pagesへこのフォルダ内の6ファイルをそのままアップロードしてください。
+## GitHub Pagesへの更新手順
+1. ZIPを展開します。
+2. GitHubリポジトリ内の同名ファイルを、以下のファイルで置き換えます。
+   - index.html
+   - manifest.json
+   - service-worker.js
+   - icon-192.png
+   - icon-512.png
+   - apple-touch-icon.png
+3. Commit changes を押します。
+4. GitHub Pagesの公開URLは変更しません。
 
-- index.html
-- manifest.json
-- service-worker.js
-- icon-192.png
-- icon-512.png
-- apple-touch-icon.png
+## データについて
+同じGitHub Pages URLのまま更新する限り、iPhone内に保存済みの日報データは通常そのまま維持されます。
+念のため、更新前にアプリの「バックアップを書き出す」からJSONファイルを保存してください。
 
-公開後、iPhoneのSafariでURLを開き、共有ボタン →「ホーム画面に追加」で使えます。
+## 更新が反映されない場合
+PWAは古いキャッシュを保持することがあります。
+アプリを完全終了して再起動し、それでも変わらない場合はSafariで公開URLを開いて再読み込みしてください。

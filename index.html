@@ -1,679 +1,348 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>ネットスーパー日報メモ</title>
-  <meta name="theme-color" content="#2563eb" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="ネットスーパー日報メモ" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="description" content="ネットスーパー配送業務の件数・個数・走行距離を記録・集計する日報メモ" />
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
-  <style>
-    :root {
-      --bg: #f4f6f8;
-      --card: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --line: #d1d5db;
-      --accent: #2563eb;
-      --accent-dark: #1d4ed8;
-      --danger: #dc2626;
-      --success: #059669;
-      --shadow: 0 8px 24px rgba(0,0,0,.08);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.45;
-    }
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      background: rgba(244,246,248,.94);
-      backdrop-filter: blur(8px);
-      padding: calc(14px + env(safe-area-inset-top)) 14px 10px;
-      border-bottom: 1px solid var(--line);
-    }
-    h1 {
-      font-size: 20px;
-      margin: 0;
-      letter-spacing: .02em;
-    }
-    main {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 14px max(12px, env(safe-area-inset-left)) calc(80px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
-    }
-    .card {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 14px;
-      margin-bottom: 14px;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(209,213,219,.7);
-    }
-    .section-title {
-      font-size: 16px;
-      font-weight: 700;
-      margin: 0 0 12px;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 5px;
-      font-weight: 600;
-    }
-    input, select, textarea {
-      width: 100%;
-      font-size: 17px;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #fff;
-      color: var(--text);
-    }
-    input[type="number"] { text-align: right; }
-    textarea { min-height: 84px; resize: vertical; }
-    .grid2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .grid3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      align-items: end;
-    }
-    .route-row {
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 10px;
-      margin-bottom: 10px;
-      background: #fafafa;
-    }
-    .route-head {
-      font-weight: 800;
-      font-size: 15px;
-      margin-bottom: 8px;
-    }
-    .summary {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .summary .box {
-      background: #eef2ff;
-      border-radius: 14px;
-      padding: 12px;
-      text-align: center;
-      border: 1px solid #c7d2fe;
-    }
-    .summary .wide { grid-column: 1 / -1; }
-    .summary .num {
-      font-size: 24px;
-      font-weight: 900;
-      color: var(--accent-dark);
-    }
-    .summary .cap {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-    .buttons {
-      display: grid;
-      gap: 10px;
-      margin-top: 12px;
-    }
-    button, .button-link {
-      width: 100%;
-      appearance: none;
-      border: none;
-      border-radius: 14px;
-      padding: 13px 14px;
-      font-size: 16px;
-      font-weight: 800;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      display: block;
-    }
-    .primary { background: var(--accent); color: white; }
-    .primary:active { background: var(--accent-dark); }
-    .secondary { background: #e5e7eb; color: #111827; }
-    .danger { background: #fee2e2; color: var(--danger); }
-    .success { background: #d1fae5; color: var(--success); }
-    .small-note {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 8px;
-    }
-    .status {
-      font-size: 13px;
-      color: var(--success);
-      min-height: 20px;
-      margin-top: 8px;
-      font-weight: 700;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      background: white;
-    }
-    th, td {
-      border-bottom: 1px solid var(--line);
-      padding: 9px 6px;
-      text-align: right;
-      white-space: nowrap;
-    }
-    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
-    .table-wrap { overflow-x: auto; }
-    .mini-table th, .mini-table td { text-align: center; }
-    .mini-table th:first-child, .mini-table td:first-child { text-align: left; }
-    .row-actions button {
-      font-size: 12px;
-      padding: 7px 8px;
-      border-radius: 9px;
-      display: inline-block;
-      width: auto;
-      margin-left: 4px;
-    }
-    .hidden { display: none; }
-    @media (min-width: 640px) {
-      .buttons { grid-template-columns: repeat(2, 1fr); }
-      .summary { grid-template-columns: repeat(4, 1fr); }
-      .summary .wide { grid-column: auto; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ネットスーパー業務記録</title>
+<meta name="theme-color" content="#2563eb">
+
+<style>
+:root{
+  --bg:#f2f4f7;--card:#fff;--text:#172033;--muted:#667085;--line:#d5d9df;
+  --accent:#2563eb;--accent2:#1d4ed8;--danger:#c62828;--ok:#07875b;
+  --soft:#eef4ff;--shadow:0 8px 24px rgba(23,32,51,.08)
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{line-height:1.4}
+button,input,select,textarea{font:inherit}
+header{position:sticky;top:0;z-index:20;background:rgba(242,244,247,.97);backdrop-filter:blur(8px);
+padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--line)}
+.header-inner{max-width:760px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:22px;margin:0;font-weight:850;letter-spacing:.01em}
+main{max-width:760px;margin:auto;padding:14px max(12px,env(safe-area-inset-left))
+calc(72px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-right))}
+.card{background:var(--card);border:1px solid rgba(213,217,223,.9);border-radius:18px;
+box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.title{font-size:18px;font-weight:850;margin:0 0 14px}
+.muted{color:var(--muted);font-size:12px}
+.field label{display:block;font-size:13px;color:var(--muted);font-weight:750;margin-bottom:6px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;background:#fff;
+color:var(--text);padding:13px 14px;font-size:17px;min-height:52px}
+input[type=number]{text-align:right}
+.btn{border:0;border-radius:12px;padding:11px 13px;font-weight:800;cursor:pointer}
+.btn.primary{background:var(--accent);color:white}
+.btn.secondary{background:#e7e9ee;color:#172033}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:#344054}
+.btn.danger{background:#fde8e8;color:var(--danger)}
+.btn.ok{background:#dff7ee;color:var(--ok)}
+.btn.small{padding:8px 10px;font-size:13px;width:auto}
+.full{width:100%}
+.basic-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end}
+.basic-grid .field:first-child input{border-radius:14px 0 0 14px;border-right:0}
+.basic-grid .field:last-child select{border-radius:14px}
+.day-nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.login-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;background:#f8fafc;
+border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:800;cursor:pointer;margin-top:11px}
+.details-body{display:none;padding:11px 2px 0}
+.details-body.open{display:block}
+.login-grid{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;align-items:center}
+.secret{font-variant-numeric:tabular-nums;letter-spacing:.06em;min-height:46px;display:flex;
+align-items:center;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.route-card{border:1px solid var(--line);border-radius:18px;background:#fcfcfd;padding:14px 14px 13px;margin-bottom:12px}
+.route-title-line{display:flex;align-items:baseline;gap:10px;white-space:nowrap;margin-bottom:12px}
+.route-title-line strong{font-size:20px;flex:0 0 auto}
+.route-title-line span{font-size:14px;color:#344054}
+.route-title-line .cutoff{font-size:12px;color:var(--muted);margin-left:auto}
+.route-input-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.route-input-grid input{font-size:21px;padding:13px 14px}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.sum-box{background:var(--soft);border:1px solid #c8d7ff;border-radius:14px;padding:10px;text-align:center}
+.sum-num{font-size:24px;font-weight:900;color:var(--accent2)}
+.sum-cap{font-size:12px;color:var(--muted);font-weight:800}
+.wide{grid-column:1/-1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.status{min-height:20px;font-size:13px;font-weight:800;color:var(--ok);margin-top:8px}
+.accordion>summary{cursor:pointer;font-weight:900;list-style:none}
+.accordion>summary::-webkit-details-marker{display:none}
+.accordion>summary::after{content:'＋';float:right}
+.accordion[open]>summary::after{content:'−'}
+.accordion-body{padding-top:12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+.month-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.avg-table th,.avg-table td{text-align:center}
+.avg-table th:first-child,.avg-table td:first-child{text-align:left}
+.hidden{display:none}
+
+/* settings page: same HTML, app-like full-screen slide */
+.modal{position:fixed;inset:0;z-index:60;background:#f2f4f7;display:none;transform:translateX(100%);transition:transform .25s ease}
+.modal.open{display:block;transform:translateX(0)}
+.sheet{width:100%;height:100%;max-width:760px;margin:0 auto;background:#f2f4f7;padding:
+calc(12px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom));overflow:auto}
+.sheet-head{position:sticky;top:calc(-12px - env(safe-area-inset-top));z-index:5;background:rgba(242,244,247,.97);
+backdrop-filter:blur(8px);display:flex;justify-content:space-between;align-items:center;padding:10px 0 12px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.settings-card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:15px;margin-bottom:14px}
+.store-item{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:#fafafa}
+.store-item textarea{min-height:70px}
+.copy-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#111827;color:white;
+padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:100}
+.copy-toast.show{opacity:1}
+@media(max-width:520px){
+  h1{font-size:20px}
+  .route-title-line{gap:7px}
+  .route-title-line strong{font-size:19px}
+  .route-title-line span{font-size:13px}
+  .route-title-line .cutoff{font-size:11px}
+  .actions{grid-template-columns:1fr 1fr}
+}
+@media(min-width:640px){.month-grid{grid-template-columns:repeat(5,1fr)}}
+</style>
+
+
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ネットスーパー業務記録">
+
 </head>
 <body>
-  <header>
-    <h1>ネットスーパー日報メモ</h1>
-  </header>
+<header>
+  <div class="header-inner">
+    <h1>ネットスーパー業務記録</h1>
+    <button class="btn ghost small" id="manageStoresBtn" aria-label="設定を開く">⚙ 設定</button>
+  </div>
+</header>
 
-  <main>
-    <section class="card">
-      <p class="section-title">基本情報</p>
-      <div class="grid2">
-        <div>
-          <label for="workDate">日付 <span id="weekdayLabel" style="color:#2563eb;font-weight:800;"></span></label>
-          <input id="workDate" type="date" />
-        </div>
-        <div>
-          <label for="storeName">稼働店舗名</label>
-          <input id="storeName" type="text" placeholder="例：〇〇店" list="storeList" />
-          <datalist id="storeList"></datalist>
-        </div>
-      </div>
+<main>
+<section class="card">
+  <p class="title">基本情報</p>
+  <div class="basic-grid">
+    <div class="field">
+      <label for="workDate">日付 <span id="weekday" style="color:var(--accent)"></span></label>
+      <input id="workDate" type="date">
+    </div>
+    <div class="field">
+      <label for="storeSelect">稼働店舗名</label>
+      <select id="storeSelect"></select>
+    </div>
+  </div>
+  <div class="day-nav">
+    <button class="btn ghost" id="prevDay">◀ 前日</button>
+    <button class="btn secondary" id="todayBtn">今日</button>
+    <button class="btn ghost" id="nextDay">翌日 ▶</button>
+  </div>
+
+  <button class="login-toggle" id="loginToggle">
+    <span>ログイン情報</span><span>開く</span>
+  </button>
+  <div class="details-body" id="loginBody">
+    <div class="login-grid">
+      <div><div class="muted">店舗ID</div><div class="secret" id="storeIdView">未登録</div></div>
+      <button class="btn secondary small" data-copy="store">コピー</button>
+    </div>
+    <div class="login-grid">
+      <div><div class="muted">共通パスワード</div><div class="secret" id="passwordView">未登録</div></div>
+      <div><button class="btn secondary small" id="showPassBtn">表示</button> <button class="btn secondary small" data-copy="pass">コピー</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <p class="title">各便の件数・個数</p>
+  <div id="routes"></div>
+  <div class="summary">
+    <div class="sum-box"><div class="sum-num" id="totalCases">0</div><div class="sum-cap">合計件数</div></div>
+    <div class="sum-box"><div class="sum-num" id="totalItems">0</div><div class="sum-cap">合計個数</div></div>
+  </div>
+</section>
+
+<section class="card">
+  <p class="title">車両メーター</p>
+  <div class="grid2">
+    <div class="field"><label for="startMeter">開始メーター</label><input id="startMeter" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0"></div>
+    <div class="field"><label for="endMeter">終了メーター</label><input id="endMeter" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0"></div>
+  </div>
+  <div class="summary"><div class="sum-box wide"><div class="sum-num" id="distance">0</div><div class="sum-cap">走行距離 km</div></div></div>
+  <div class="muted" id="meterNote"></div>
+</section>
+
+<section class="card">
+  <div class="actions">
+    <button class="btn primary" id="saveBtn">保存</button>
+    <button class="btn secondary" id="clearBtn">入力クリア</button>
+    <button class="btn danger" id="deleteBtn">この日の保存を削除</button>
+    <button class="btn ghost" id="openMemoBtn">メモ・店舗情報</button>
+  </div>
+  <div class="status" id="status"></div>
+</section>
+
+<details class="card accordion" id="monthPanel" open>
+  <summary>月別集計・稼働日一覧</summary>
+  <div class="accordion-body">
+    <div class="grid2">
+      <div class="field"><label for="monthSelect">表示月</label><input id="monthSelect" type="month"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn secondary full" id="csvBtn">月別CSV出力</button></div>
+    </div>
+    <div class="month-grid" style="margin-top:10px">
+      <div class="sum-box"><div class="sum-num" id="monthDays">0</div><div class="sum-cap">稼働日数</div></div>
+      <div class="sum-box"><div class="sum-num" id="monthCases">0</div><div class="sum-cap">総件数</div></div>
+      <div class="sum-box"><div class="sum-num" id="monthItems">0</div><div class="sum-cap">総個数</div></div>
+      <div class="sum-box"><div class="sum-num" id="monthDistance">0</div><div class="sum-cap">総走行距離</div></div>
+      <div class="sum-box"><div class="sum-num" id="avgDistance">0</div><div class="sum-cap">1日平均km</div></div>
+    </div>
+    <div class="table-wrap" style="margin-top:10px">
+      <table class="avg-table"><thead><tr><th>便</th><th>1便</th><th>2便</th><th>3便</th><th>4便</th><th>5便</th><th>6便</th></tr></thead>
+      <tbody><tr id="avgRouteRow"><td>平均件数</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table>
+    </div>
+    <div class="table-wrap" style="margin-top:10px">
+      <table><thead><tr><th>日付</th><th>店舗</th><th>件数</th><th>個数</th><th>km</th><th></th></tr></thead><tbody id="monthRows"></tbody></table>
+    </div>
+  </div>
+</details>
+</main>
+
+<!-- 設定画面：同一HTML内でフルスクリーン表示 -->
+<div class="modal" id="storeModal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <button class="btn ghost small" id="closeStores">← 戻る</button>
+      <h2 style="font-size:19px;margin:0">設定</h2>
+      <span style="width:62px"></span>
+    </div>
+
+    <section class="settings-card">
+      <h3 style="margin:0 0 12px">店舗管理</h3>
+      <div id="storeList"></div>
+      <button class="btn primary full" id="addStoreBtn">店舗を追加</button>
     </section>
 
-    <section class="card">
-      <p class="section-title">各便の件数・個数</p>
-      <div id="routes"></div>
-      <div class="summary">
-        <div class="box">
-          <div class="num" id="totalCases">0</div>
-          <div class="cap">合計件数</div>
-        </div>
-        <div class="box">
-          <div class="num" id="totalItems">0</div>
-          <div class="cap">合計個数</div>
-        </div>
+    <section class="settings-card">
+      <h3 style="margin:0 0 12px">共通ログイン情報</h3>
+      <div class="field">
+        <label for="commonPassword">全店舗共通パスワード</label>
+        <input id="commonPassword" type="text" inputmode="numeric" placeholder="共通パスワード">
       </div>
+      <button class="btn ok full" style="margin-top:10px" id="saveStoreSettings">店舗設定を保存</button>
     </section>
 
-    <section class="card">
-      <p class="section-title">車両メーター</p>
-      <div class="grid2">
-        <div>
-          <label for="startMeter">開始メーター</label>
-          <input id="startMeter" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" />
-        </div>
-        <div>
-          <label for="endMeter">終了メーター</label>
-          <input id="endMeter" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" />
-        </div>
+    <section class="settings-card">
+      <h3 style="margin:0 0 12px">データ管理</h3>
+      <div class="actions">
+        <button class="btn ok" id="backupBtn">バックアップを書き出す</button>
+        <button class="btn secondary" id="restoreBtn">バックアップを読み込む</button>
       </div>
-      <div class="summary" style="margin-top:10px;">
-        <div class="box wide">
-          <div class="num" id="distanceKm">0</div>
-          <div class="cap">走行距離 km</div>
-        </div>
-      </div>
-      <div id="meterWarning" class="small-note"></div>
+      <input id="restoreFile" type="file" accept="application/json,.json" class="hidden">
+      <p class="muted">共有メニューからiCloud Drive、Google Driveなど任意の保存先を選べます。</p>
     </section>
+  </div>
+</div>
 
-    <section class="card">
-      <p class="section-title">メモ</p>
-      <textarea id="memo" placeholder="任意：特記事項など"></textarea>
+<div class="modal" id="memoModal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <button class="btn ghost small" id="closeMemo">← 戻る</button>
+      <h2 style="font-size:19px;margin:0">メモ・店舗情報</h2>
+      <span style="width:62px"></span>
+    </div>
+    <section class="settings-card">
+      <div class="field"><label for="dailyMemo">この日のメモ</label><textarea id="dailyMemo" placeholder="特記事項など"></textarea></div>
+      <div style="margin-top:14px"><div class="muted">選択中店舗のメモ</div><div class="secret" style="white-space:pre-wrap;min-height:70px" id="storeMemoView">未登録</div></div>
     </section>
+  </div>
+</div>
 
-    <section class="card">
-      <p class="section-title">保存・送信</p>
-      <label for="emailAddress">送信先メールアドレス</label>
-      <input id="emailAddress" type="email" placeholder="your@example.com" />
-      <div class="buttons">
-        <button class="primary" id="saveBtn">今日の記録を保存</button>
-        <button class="success" id="mailBtn">メール本文を作成</button>
-        <button class="secondary" id="clearBtn">入力をクリア</button>
-        <button class="danger" id="deleteBtn">この日の保存を削除</button>
-      </div>
-      <div id="status" class="status"></div>
-      <p class="small-note">メール送信は端末のメールアプリを開く方式です。最後の送信ボタンは自分で押してください。</p>
-    </section>
 
-    <section class="card">
-      <p class="section-title">月別一覧・CSV出力</p>
-      <div class="grid2">
-        <div>
-          <label for="monthSelect">表示月</label>
-          <input id="monthSelect" type="month" />
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <button class="secondary" id="csvBtn">この月をCSV出力</button>
-        </div>
-      </div>
-      <div class="summary" style="margin-top:10px;">
-        <div class="box"><div class="num" id="monthDays">0</div><div class="cap">稼働日数</div></div>
-        <div class="box"><div class="num" id="monthCases">0</div><div class="cap">月間件数</div></div>
-        <div class="box"><div class="num" id="monthItems">0</div><div class="cap">月間個数</div></div>
-        <div class="box"><div class="num" id="monthDistance">0</div><div class="cap">月間km</div></div>
-        <div class="box wide"><div class="num" id="avgDistance">0</div><div class="cap">1日平均km</div></div>
-      </div>
-      <div class="table-wrap" style="margin-top:12px;">
-        <table class="mini-table">
-          <thead>
-            <tr><th>便</th><th>1便</th><th>2便</th><th>3便</th><th>4便</th><th>5便</th><th>6便</th></tr>
-          </thead>
-          <tbody>
-            <tr id="routeAvgCasesRow"><td>平均件数</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="table-wrap" style="margin-top:12px;">
-        <table>
-          <thead>
-            <tr><th>日付</th><th>店舗</th><th>件数</th><th>個数</th><th>km</th><th>操作</th></tr>
-          </thead>
-          <tbody id="monthTable"></tbody>
-        </table>
+<div class="modal" id="leaveModal">
+  <div class="sheet" style="display:flex;align-items:center;justify-content:center">
+    <section class="settings-card" style="width:min(100%,520px);margin:0">
+      <h2 style="font-size:19px;margin:0 0 8px">未保存の入力があります</h2>
+      <p style="margin:0 0 16px;color:var(--muted)">現在の内容をどうしますか？</p>
+      <div style="display:grid;gap:9px">
+        <button class="btn primary full" id="leaveSave">保存して移動</button>
+        <button class="btn danger full" id="leaveDiscard">保存せず移動</button>
+        <button class="btn secondary full" id="leaveCancel">キャンセル</button>
       </div>
     </section>
-  </main>
+  </div>
+</div>
+
+<div class="copy-toast" id="toast">コピーしました</div>
+<script>
+(()=>{
+const LEGACY_RECORDS='netsuperDailyRecords_v1',LEGACY_SETTINGS='netsuperDailySettings_v1';
+const RECORDS='netsuperBusinessRecords_v2',SETTINGS='netsuperBusinessSettings_v2';
+const ROUTES=[['1便','10:00～12:00','0:00'],['2便','12:00～14:00','8:00'],['3便','14:00～16:00','9:00'],['4便','16:00～18:00','11:00'],['5便','18:00～20:00','13:00'],['6便','20:00～21:00','15:00']];
+const $=id=>document.getElementById(id);let dirty=false,snapshot='',passwordVisible=false,pendingNav=null;
+function parse(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
+function records(){return parse(RECORDS,{})}function saveRecords(v){localStorage.setItem(RECORDS,JSON.stringify(v))}
+function settings(){return parse(SETTINGS,{stores:[],lastStoreId:'',commonPassword:'',version:2})}function saveSettings(v){localStorage.setItem(SETTINGS,JSON.stringify(v))}
+function migrate(){if(!localStorage.getItem(RECORDS)){const old=parse(LEGACY_RECORDS,{});saveRecords(old)}if(!localStorage.getItem(SETTINGS)){const old=parse(LEGACY_SETTINGS,{}),names=new Set(Object.values(parse(LEGACY_RECORDS,{})).map(r=>r.storeName).filter(Boolean));if(old.lastStoreName)names.add(old.lastStoreName);const stores=[...names].map((n,i)=>({id:'s'+Date.now()+i,name:n,loginId:'',memo:''}));saveSettings({stores,lastStoreId:stores[0]?.id||'',commonPassword:'',version:2})}}
+function today(){const d=new Date();return localDate(d)}function localDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function shift(date,n){const [y,m,d]=date.split('-').map(Number),x=new Date(y,m-1,d+n);return localDate(x)}
+function wd(date){if(!date)return'';const [y,m,d]=date.split('-').map(Number);return `（${['日','月','火','水','木','金','土'][new Date(y,m-1,d).getDay()]}）`}
+function num(id){return Number($(id).value||0)}function fmt(n){const x=Math.round(Number(n||0)*10)/10;return Number.isInteger(x)?String(x):String(x)}
+ROUTES.forEach((r,i)=>{const row=document.createElement('div');row.className='route-card';row.innerHTML=`<div class="route-title-line"><strong>${r[0]}</strong><span>${r[1]}</span><span class="cutoff">（注文締切 ${r[2]}）</span></div><div class="route-input-grid"><div class="field"><label for="r${i+1}c">件数</label><input id="r${i+1}c" type="number" inputmode="numeric" min="0" step="1" placeholder="0" aria-label="${r[0]}件数"></div><div class="field"><label for="r${i+1}i">個数</label><input id="r${i+1}i" type="number" inputmode="numeric" min="0" step="1" placeholder="0" aria-label="${r[0]}個数"></div></div>`;$('routes').appendChild(row)});
+function calc(){let c=0,it=0;for(let i=1;i<=6;i++){c+=num(`r${i}c`);it+=num(`r${i}i`)}const s=num('startMeter'),e=num('endMeter'),dist=s&&e?Math.max(0,Math.round((e-s)*10)/10):0;$('totalCases').textContent=c;$('totalItems').textContent=it;$('distance').textContent=fmt(dist);$('meterNote').textContent=s&&e&&e<s?'終了メーターが開始メーターより小さくなっています。':'';return{c,it,dist}}
+function form(){const t=calc();return{date:$('workDate').value,weekday:wd($('workDate').value),storeId:$('storeSelect').value,storeName:selectedStore()?.name||'',routes:ROUTES.map((_,i)=>({cases:num(`r${i+1}c`),items:num(`r${i+1}i`)})),totalCases:t.c,totalItems:t.it,startMeter:num('startMeter'),endMeter:num('endMeter'),distance:t.dist,memo:$('dailyMemo').value.trim(),updatedAt:new Date().toISOString()}}
+function fingerprint(){const f=form();delete f.updatedAt;return JSON.stringify(f)}function setClean(){snapshot=fingerprint();dirty=false}function markDirty(){dirty=fingerprint()!==snapshot}
+function selectedStore(){return settings().stores.find(s=>s.id===$('storeSelect').value)||null}
+function refreshStores(selected){const s=settings();$('storeSelect').innerHTML=s.stores.length?s.stores.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(''):'<option value="">店舗未登録</option>';$('storeSelect').value=selected||s.lastStoreId||s.stores[0]?.id||'';refreshStoreInfo()}
+function refreshStoreInfo(){const st=selectedStore(),s=settings();$('storeIdView').textContent=st?.loginId||'未登録';$('storeMemoView').textContent=st?.memo||'未登録';$('passwordView').textContent=s.commonPassword?(passwordVisible?s.commonPassword:'●'.repeat(Math.max(6,s.commonPassword.length))):'未登録'}
+function latestEnd(before){return Object.values(records()).filter(r=>r.date<before&&Number(r.endMeter)>0).sort((a,b)=>b.date.localeCompare(a.date))[0]?.endMeter||''}
+function blank(date,withCandidate=true){const s=settings();$('workDate').value=date;$('weekday').textContent=wd(date);refreshStores(s.lastStoreId);for(let i=1;i<=6;i++){$(`r${i}c`).value='';$(`r${i}i`).value=''}$('startMeter').value=withCandidate?latestEnd(date):'';$('endMeter').value='';$('dailyMemo').value='';calc();setClean()}
+function apply(data){$('workDate').value=data.date||today();$('weekday').textContent=wd($('workDate').value);refreshStores(data.storeId);if(!data.storeId&&data.storeName){const s=settings(),found=s.stores.find(x=>x.name===data.storeName);if(found)$('storeSelect').value=found.id}for(let i=1;i<=6;i++){const r=data.routes?.[i-1]||{};$(`r${i}c`).value=r.cases||'';$(`r${i}i`).value=r.items||''}$('startMeter').value=data.startMeter||'';$('endMeter').value=data.endMeter||'';$('dailyMemo').value=data.memo||'';refreshStoreInfo();calc();setClean()}
+function loadDate(date){const r=records()[date];r?apply(r):blank(date,true);$('monthSelect').value=date.slice(0,7);renderMonth()}
+function confirmLeave(done){
+  markDirty();
+  if(!dirty)return done();
+  pendingNav=done;
+  openModal('leaveModal');
+}
+function finishPendingNav(){
+  const fn=pendingNav;
+  pendingNav=null;
+  closeModal('leaveModal');
+  if(fn)fn();
+}
+function navigate(date){confirmLeave(()=>loadDate(date))}
+function saveCurrent(skipConfirm=false){const data=form();if(!data.date)return status('日付を入力してください。',true),false;const rs=records(),exists=!!rs[data.date];if(exists&&!skipConfirm&&!confirm(`${data.date}${wd(data.date)} の記録を上書きしますか？`))return false;rs[data.date]=data;saveRecords(rs);const s=settings();s.lastStoreId=data.storeId;saveSettings(s);setClean();renderMonth();status(exists?'上書き保存しました。':'保存しました。');return true}
+function clearCurrent(){if(!confirm('現在の入力内容をクリアしますか？'))return;blank($('workDate').value,false);dirty=true}
+function deleteCurrent(){const date=$('workDate').value,rs=records();if(!rs[date])return status('この日の保存データはありません。',true);if(!confirm(`${date}${wd(date)} の保存を削除しますか？`))return;delete rs[date];saveRecords(rs);blank(date,true);renderMonth();status('削除しました。')}
+function renderMonth(){const m=$('monthSelect').value||today().slice(0,7),rows=Object.values(records()).filter(r=>r.date?.startsWith(m)).sort((a,b)=>a.date.localeCompare(b.date));let tc=0,ti=0,td=0,rc=Array(6).fill(0);$('monthRows').innerHTML='';rows.forEach(r=>{tc+=r.totalCases||0;ti+=r.totalItems||0;td+=r.distance||0;r.routes?.forEach((x,i)=>rc[i]+=x.cases||0);const tr=document.createElement('tr');tr.innerHTML=`<td>${r.date.slice(5).replace('-','/')}${wd(r.date)}</td><td>${esc(r.storeName||'-')}</td><td>${r.totalCases||0}</td><td>${r.totalItems||0}</td><td>${fmt(r.distance)}</td><td><button class="btn secondary small" data-open="${r.date}">開く</button></td>`;$('monthRows').appendChild(tr)});$('monthDays').textContent=rows.length;$('monthCases').textContent=tc;$('monthItems').textContent=ti;$('monthDistance').textContent=fmt(td);$('avgDistance').textContent=rows.length?fmt(td/rows.length):'0';const cells=$('avgRouteRow').querySelectorAll('td');rc.forEach((v,i)=>cells[i+1].textContent=rows.length?fmt(v/rows.length):'0');document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>navigate(b.dataset.open))}
+function csv(){const m=$('monthSelect').value,rows=Object.values(records()).filter(r=>r.date?.startsWith(m)).sort((a,b)=>a.date.localeCompare(b.date));if(!rows.length)return status('この月のデータがありません。',true);const h=['日付','曜日','店舗名'];for(let i=1;i<=6;i++)h.push(`${i}便件数`,`${i}便個数`);h.push('合計件数','合計個数','開始メーター','終了メーター','走行距離km','メモ');const q=v=>{const s=String(v??'');return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s};const lines=[h.map(q).join(',')];rows.forEach(r=>{const a=[r.date,wd(r.date).replace(/[（）]/g,''),r.storeName||''];for(let i=0;i<6;i++)a.push(r.routes?.[i]?.cases||0,r.routes?.[i]?.items||0);a.push(r.totalCases||0,r.totalItems||0,r.startMeter||0,r.endMeter||0,r.distance||0,r.memo||'');lines.push(a.map(q).join(','))});download(new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'}),`ネットスーパー業務記録_${m}.csv`);status('CSVを出力しました。')}
+function backup(){const data={app:'ネットスーパー業務記録',dataVersion:2,exportedAt:new Date().toISOString(),records:records(),settings:settings()};download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'ネットスーパー業務記録_バックアップ.json');status('バックアップを書き出しました。')}
+function download(blob,name){const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+async function restore(file){try{const data=JSON.parse(await file.text());if(!data.records||!data.settings)throw Error();if(!confirm('現在のアプリ内データをバックアップ内容で置き換えます。実行しますか？'))return;saveRecords(data.records);saveSettings(data.settings);refreshStores();loadDate(today());status('バックアップから復元しました。')}catch{status('バックアップファイルを読み込めませんでした。',true)}}
+function renderStoreEditor(){const s=settings();$('storeList').innerHTML=s.stores.map((x,i)=>`<div class="store-item" data-store="${esc(x.id)}"><div class="field"><label>店舗名</label><input data-k="name" value="${escAttr(x.name)}"></div><div class="field" style="margin-top:7px"><label>店舗ID</label><input data-k="loginId" value="${escAttr(x.loginId||'')}"></div><div class="field" style="margin-top:7px"><label>店舗メモ</label><textarea data-k="memo">${esc(x.memo||'')}</textarea></div><button class="btn danger small" data-remove="${esc(x.id)}">この店舗を削除</button></div>`).join('');$('commonPassword').value=s.commonPassword||'';document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('この店舗を削除しますか？')){b.closest('.store-item').remove()}})}
+function saveStoreEditor(){const old=settings();const stores=[...document.querySelectorAll('.store-item')].map((el,i)=>({id:el.dataset.store||`s${Date.now()}${i}`,name:el.querySelector('[data-k=name]').value.trim(),loginId:el.querySelector('[data-k=loginId]').value.trim(),memo:el.querySelector('[data-k=memo]').value.trim()})).filter(x=>x.name);const next={stores,lastStoreId:stores.some(x=>x.id===old.lastStoreId)?old.lastStoreId:(stores[0]?.id||''),commonPassword:$('commonPassword').value.trim(),version:2};saveSettings(next);refreshStores(next.lastStoreId);closeModal('storeModal');status('店舗設定を保存しました。')}
+function status(msg,err=false){$('status').style.color=err?'var(--danger)':'var(--ok)';$('status').textContent=msg;setTimeout(()=>{if($('status').textContent===msg)$('status').textContent=''},3200)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function escAttr(s){return esc(s)}
+function openModal(id){$(id).classList.add('open')}function closeModal(id){$(id).classList.remove('open')}
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1200)}
+async function copy(text){if(!text||text==='未登録')return;try{await navigator.clipboard.writeText(text);toast('コピーしました')}catch{toast('コピーできませんでした')}}
+function bind(){document.querySelectorAll('#routes input,#startMeter,#endMeter,#dailyMemo').forEach(el=>el.addEventListener('input',()=>{calc();markDirty()}));$('storeSelect').onchange=()=>{refreshStoreInfo();markDirty()};$('workDate').onchange=e=>{const d=e.target.value;e.target.value=snapshot?JSON.parse(snapshot).date:d;navigate(d)};$('prevDay').onclick=()=>navigate(shift($('workDate').value,-1));$('nextDay').onclick=()=>navigate(shift($('workDate').value,1));$('todayBtn').onclick=()=>navigate(today());$('saveBtn').onclick=()=>saveCurrent();$('clearBtn').onclick=clearCurrent;$('deleteBtn').onclick=deleteCurrent;$('monthSelect').onchange=renderMonth;$('csvBtn').onclick=csv;$('backupBtn').onclick=backup;$('restoreBtn').onclick=()=>$('restoreFile').click();$('restoreFile').onchange=e=>e.target.files[0]&&restore(e.target.files[0]);$('loginToggle').onclick=()=>{const o=$('loginBody').classList.toggle('open');$('loginToggle').lastElementChild.textContent=o?'閉じる':'開く'};$('showPassBtn').onclick=()=>{passwordVisible=!passwordVisible;$('showPassBtn').textContent=passwordVisible?'隠す':'表示';refreshStoreInfo()};document.querySelector('[data-copy=store]').onclick=()=>copy(selectedStore()?.loginId||'');document.querySelector('[data-copy=pass]').onclick=()=>copy(settings().commonPassword||'');$('manageStoresBtn').onclick=()=>{renderStoreEditor();openModal('storeModal')};$('closeStores').onclick=()=>closeModal('storeModal');$('addStoreBtn').onclick=()=>{const div=document.createElement('div');div.className='store-item';div.dataset.store=`s${Date.now()}`;div.innerHTML=`<div class="field"><label>店舗名</label><input data-k="name"></div><div class="field" style="margin-top:7px"><label>店舗ID</label><input data-k="loginId"></div><div class="field" style="margin-top:7px"><label>店舗メモ</label><textarea data-k="memo"></textarea></div><button class="btn danger small" data-remove="${div.dataset.store}">この店舗を削除</button>`;$('storeList').appendChild(div);div.querySelector('[data-remove]').onclick=()=>div.remove()};$('saveStoreSettings').onclick=saveStoreEditor;$('openMemoBtn').onclick=()=>{refreshStoreInfo();openModal('memoModal')};$('closeMemo').onclick=()=>{markDirty();closeModal('memoModal')};
+$('leaveSave').onclick=()=>{if(saveCurrent(true))finishPendingNav()};
+$('leaveDiscard').onclick=()=>finishPendingNav();
+$('leaveCancel').onclick=()=>{pendingNav=null;closeModal('leaveModal')};
+window.addEventListener('beforeunload',e=>{markDirty();if(dirty){e.preventDefault();e.returnValue=''}})}
+migrate();bind();$('monthSelect').value=today().slice(0,7);refreshStores();loadDate(today());
+})();
+</script>
 
 <script>
-(function() {
-  const STORAGE_KEY = 'netsuperDailyRecords_v1';
-  const SETTINGS_KEY = 'netsuperDailySettings_v1';
-  const $ = id => document.getElementById(id);
-
-  const fields = ['workDate','storeName','startMeter','endMeter','memo','emailAddress','monthSelect'];
-  const routeWrap = $('routes');
-
-  for (let i = 1; i <= 6; i++) {
-    const row = document.createElement('div');
-    row.className = 'route-row';
-    row.innerHTML = `
-      <div class="route-head">${i}便</div>
-      <div class="grid2">
-        <div><label for="r${i}Cases">件数</label><input id="r${i}Cases" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>
-        <div><label for="r${i}Items">個数</label><input id="r${i}Items" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>
-      </div>`;
-    routeWrap.appendChild(row);
-  }
-
-  function todayLocal() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
-
-  function weekdayJa(dateStr) {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    const names = ['日', '月', '火', '水', '木', '金', '土'];
-    return `（${names[date.getDay()]}）`;
-  }
-
-  function updateWeekday() {
-    const el = $('weekdayLabel');
-    if (el) el.textContent = weekdayJa($('workDate').value);
-  }
-
-  function currentMonth() { return todayLocal().slice(0, 7); }
-  function num(id) { return Number($(id).value || 0); }
-  function fmt(n) { return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10); }
-
-  function loadRecords() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
-    catch { return {}; }
-  }
-  function saveRecords(records) { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
-  function loadSettings() {
-    try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); }
-    catch { return {}; }
-  }
-  function saveSettings(settings) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
-
-  function calc() {
-    let totalCases = 0;
-    let totalItems = 0;
-    for (let i = 1; i <= 6; i++) {
-      totalCases += num(`r${i}Cases`);
-      totalItems += num(`r${i}Items`);
-    }
-    const start = num('startMeter');
-    const end = num('endMeter');
-    const distance = Math.max(0, Math.round((end - start) * 10) / 10);
-    $('totalCases').textContent = totalCases;
-    $('totalItems').textContent = totalItems;
-    $('distanceKm').textContent = fmt(distance);
-    $('meterWarning').textContent = end && start && end < start ? '終了メーターが開始メーターより小さくなっています。' : '';
-    return { totalCases, totalItems, distance };
-  }
-
-  function getFormData() {
-    const routes = [];
-    for (let i = 1; i <= 6; i++) {
-      routes.push({ cases: num(`r${i}Cases`), items: num(`r${i}Items`) });
-    }
-    const totals = calc();
-    return {
-      date: $('workDate').value,
-      weekday: weekdayJa($('workDate').value),
-      storeName: $('storeName').value.trim(),
-      routes,
-      totalCases: totals.totalCases,
-      totalItems: totals.totalItems,
-      startMeter: num('startMeter'),
-      endMeter: num('endMeter'),
-      distance: totals.distance,
-      memo: $('memo').value.trim(),
-      updatedAt: new Date().toISOString()
-    };
-  }
-
-  function setFormData(data) {
-    $('workDate').value = data.date || todayLocal();
-    updateWeekday();
-    $('storeName').value = data.storeName || '';
-    for (let i = 1; i <= 6; i++) {
-      const r = data.routes?.[i - 1] || {};
-      $(`r${i}Cases`).value = r.cases || '';
-      $(`r${i}Items`).value = r.items || '';
-    }
-    $('startMeter').value = data.startMeter || '';
-    $('endMeter').value = data.endMeter || '';
-    $('memo').value = data.memo || '';
-    calc();
-  }
-
-  function clearForm(keepDate = true) {
-    const date = keepDate ? $('workDate').value : todayLocal();
-    const settings = loadSettings();
-    const currentStoreName = $('storeName').value.trim();
-    const currentEmailAddress = $('emailAddress').value.trim();
-    setFormData({
-      date,
-      storeName: currentStoreName || settings.lastStoreName || '',
-      routes: Array.from({length: 6}, () => ({cases:0, items:0})),
-      startMeter: 0,
-      endMeter: 0,
-      memo: ''
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+      console.error("Service Worker registration failed:", error);
     });
-    $('emailAddress').value = currentEmailAddress || settings.emailAddress || '';
-  }
-
-  function saveCurrent(options = {}) {
-    const data = getFormData();
-    if (!data.date) { setStatus('日付を入力してください。', true); return false; }
-    const records = loadRecords();
-    const exists = Boolean(records[data.date]);
-    if (exists && !options.skipConfirm) {
-      const ok = confirm(`${data.date}${weekdayJa(data.date)} の保存データは既にあります。上書き保存しますか？`);
-      if (!ok) { setStatus('保存をキャンセルしました。', true); return false; }
-    }
-    records[data.date] = data;
-    saveRecords(records);
-
-    const settings = loadSettings();
-    settings.emailAddress = $('emailAddress').value.trim();
-    settings.lastStoreName = data.storeName;
-    saveSettings(settings);
-    updateStoreList();
-    renderMonth();
-    setStatus(exists ? '上書き保存しました。' : '保存しました。');
-    return true;
-  }
-
-  function loadByDate(date) {
-    const records = loadRecords();
-    if (records[date]) setFormData(records[date]);
-    else clearForm(true);
-  }
-
-  function deleteCurrent() {
-    const date = $('workDate').value;
-    if (!date) return;
-    if (!confirm(`${date} の保存データを削除しますか？`)) return;
-    const records = loadRecords();
-    delete records[date];
-    saveRecords(records);
-    clearForm(true);
-    renderMonth();
-    setStatus('削除しました。');
-  }
-
-  function makeMailBody(data) {
-    const lines = [];
-    lines.push('ネットスーパー日報メモ');
-    lines.push('');
-    lines.push(`日付：${data.date}${weekdayJa(data.date)}`);
-    lines.push(`店舗：${data.storeName || '-'}`);
-    lines.push('');
-    for (let i = 1; i <= 6; i++) {
-      const r = data.routes[i - 1];
-      lines.push(`${i}便：${r.cases}件 / ${r.items}個`);
-    }
-    lines.push('');
-    lines.push(`合計件数：${data.totalCases}件`);
-    lines.push(`合計個数：${data.totalItems}個`);
-    lines.push('');
-    lines.push(`開始メーター：${data.startMeter}`);
-    lines.push(`終了メーター：${data.endMeter}`);
-    lines.push(`走行距離：${fmt(data.distance)}km`);
-    if (data.memo) {
-      lines.push('');
-      lines.push(`メモ：${data.memo}`);
-    }
-    return lines.join('\n');
-  }
-
-  function openMail() {
-    if (!saveCurrent()) return;
-    const data = getFormData();
-    const email = $('emailAddress').value.trim();
-    if (!email) return setStatus('送信先メールアドレスを入力してください。', true);
-    const subject = `ネットスーパー日報 ${data.date} ${data.storeName || ''}`.trim();
-    const body = makeMailBody(data);
-    const href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = href;
-  }
-
-  function setStatus(msg, isError = false) {
-    $('status').style.color = isError ? 'var(--danger)' : 'var(--success)';
-    $('status').textContent = msg;
-    setTimeout(() => { if ($('status').textContent === msg) $('status').textContent = ''; }, 3500);
-  }
-
-  function renderMonth() {
-    const month = $('monthSelect').value || currentMonth();
-    const records = loadRecords();
-    const rows = Object.values(records)
-      .filter(r => r.date && r.date.startsWith(month))
-      .sort((a,b) => a.date.localeCompare(b.date));
-
-    let cases = 0, items = 0, distance = 0;
-    const routeCases = Array.from({ length: 6 }, () => 0);
-    const tbody = $('monthTable');
-    tbody.innerHTML = '';
-    rows.forEach(r => {
-      cases += r.totalCases || 0;
-      items += r.totalItems || 0;
-      distance += r.distance || 0;
-      for (let i = 0; i < 6; i++) routeCases[i] += r.routes?.[i]?.cases || 0;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.date.slice(5).replace('-', '/')}${weekdayJa(r.date)}</td>
-        <td>${escapeHtml(r.storeName || '-')}</td>
-        <td>${r.totalCases || 0}</td>
-        <td>${r.totalItems || 0}</td>
-        <td>${fmt(r.distance || 0)}</td>
-        <td class="row-actions"><button class="secondary" data-load="${r.date}">開く</button></td>`;
-      tbody.appendChild(tr);
-    });
-    $('monthDays').textContent = rows.length;
-    $('monthCases').textContent = cases;
-    $('monthItems').textContent = items;
-    $('monthDistance').textContent = fmt(Math.round(distance * 10) / 10);
-    $('avgDistance').textContent = rows.length ? fmt(Math.round((distance / rows.length) * 10) / 10) : '0';
-    const avgCells = $('routeAvgCasesRow').querySelectorAll('td');
-    for (let i = 0; i < 6; i++) {
-      avgCells[i + 1].textContent = rows.length ? fmt(Math.round((routeCases[i] / rows.length) * 10) / 10) : '0';
-    }
-
-    tbody.querySelectorAll('[data-load]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        $('workDate').value = btn.dataset.load;
-        loadByDate(btn.dataset.load);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    });
-  }
-
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  }
-
-  function csvEscape(v) {
-    const s = String(v ?? '');
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  }
-
-  function exportCsv() {
-    const month = $('monthSelect').value || currentMonth();
-    const records = loadRecords();
-    const rows = Object.values(records)
-      .filter(r => r.date && r.date.startsWith(month))
-      .sort((a,b) => a.date.localeCompare(b.date));
-    if (!rows.length) return setStatus('この月の保存データがありません。', true);
-
-    const header = ['日付','曜日','店舗名'];
-    for (let i = 1; i <= 6; i++) header.push(`${i}便件数`, `${i}便個数`);
-    header.push('合計件数','合計個数','開始メーター','終了メーター','走行距離km','メモ');
-
-    const lines = [header.map(csvEscape).join(',')];
-    rows.forEach(r => {
-      const line = [r.date, weekdayJa(r.date).replace(/[（）]/g, ''), r.storeName || ''];
-      for (let i = 0; i < 6; i++) {
-        line.push(r.routes?.[i]?.cases || 0, r.routes?.[i]?.items || 0);
-      }
-      line.push(r.totalCases || 0, r.totalItems || 0, r.startMeter || 0, r.endMeter || 0, r.distance || 0, r.memo || '');
-      lines.push(line.map(csvEscape).join(','));
-    });
-
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `netsuper_daily_${month}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    setStatus('CSVを出力しました。');
-  }
-
-  function updateStoreList() {
-    const records = loadRecords();
-    const names = new Set(Object.values(records).map(r => r.storeName).filter(Boolean));
-    const settings = loadSettings();
-    if (settings.lastStoreName) names.add(settings.lastStoreName);
-    $('storeList').innerHTML = [...names].sort().map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
-  }
-
-
-  function persistSettings() {
-    const settings = loadSettings();
-    const email = $('emailAddress').value.trim();
-    const store = $('storeName').value.trim();
-    if (email) settings.emailAddress = email;
-    if (store) settings.lastStoreName = store;
-    saveSettings(settings);
-    updateStoreList();
-  }
-
-  function init() {
-    const settings = loadSettings();
-    $('workDate').value = todayLocal();
-    updateWeekday();
-    $('monthSelect').value = currentMonth();
-    $('emailAddress').value = settings.emailAddress || '';
-    if (settings.lastStoreName) $('storeName').value = settings.lastStoreName;
-    updateStoreList();
-    loadByDate($('workDate').value);
-    renderMonth();
-
-    document.querySelectorAll('input, textarea').forEach(el => {
-      el.addEventListener('input', calc);
-    });
-    for (let i = 1; i <= 6; i++) {
-      $(`r${i}Cases`).addEventListener('input', calc);
-      $(`r${i}Items`).addEventListener('input', calc);
-    }
-    $('storeName').addEventListener('change', persistSettings);
-    $('storeName').addEventListener('blur', persistSettings);
-    $('emailAddress').addEventListener('change', persistSettings);
-    $('emailAddress').addEventListener('blur', persistSettings);
-    $('workDate').addEventListener('change', e => { updateWeekday(); loadByDate(e.target.value); });
-    $('monthSelect').addEventListener('change', renderMonth);
-    $('saveBtn').addEventListener('click', () => saveCurrent());
-    $('mailBtn').addEventListener('click', openMail);
-    $('clearBtn').addEventListener('click', () => { clearForm(true); setStatus('入力欄をクリアしました。店舗名とメールアドレスは保持しています。'); });
-    $('deleteBtn').addEventListener('click', deleteCurrent);
-    $('csvBtn').addEventListener('click', exportCsv);
-  }
-
-  init();
-})();
-
-  // PWA: Service Workerを登録して、インストール後のオフライン起動に対応
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js').catch(() => {
-        // Service Workerが使えない環境でもアプリ本体はそのまま利用できます。
-      });
-    });
-  }
-
+  });
+}
 </script>
-</body>
-</html>
+
+</body></html>
