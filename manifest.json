@@ -1,7 +1,8 @@
 {
-  "name": "ネットスーパー業務記録",
-  "short_name": "業務記録",
-  "description": "ネットスーパー配送業務の件数・個数・走行距離・店舗情報を記録するPWA",
+  "name": "NS業務アシスト",
+  "short_name": "NS業務アシスト",
+  "id": "./",
+  "description": "ネットスーパー配送業務の記録・集計と業務中の通知アシストを行うPWA",
   "lang": "ja-JP",
   "start_url": "./",
   "scope": "./",

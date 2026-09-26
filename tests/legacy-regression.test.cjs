@@ -1,0 +1,8 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
+const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8').replace(/\r\n/g,'\n');
+const line=name=>{const found=html.split('\n').find(x=>x.startsWith(`function ${name}(`));assert.ok(found,`missing ${name}`);return found;};
+test('existing localStorage keys stay unchanged',()=>{assert.match(html,/const RECORDS='netsuperBusinessRecords_v2',SETTINGS='netsuperBusinessSettings_v2'/);});
+test('existing record form keeps blank and explicit zero distinct',()=>{const fields={};const c=vm.createContext({$:id=>fields[id]??={value:''},ROUTES:Array(6).fill(null),calc:()=>({c:0,it:0,dist:0}),wd:()=>'',selectedStore:()=>null});vm.runInContext(line('rawNum')+'\n'+line('form'),c);fields.workDate={value:'2026-09-26'};fields.r1c={value:'0'};const result=vm.runInContext('form()',c);assert.equal(result.routes[0].cases,0);assert.equal(result.routes[1].cases,null);});
+test('backup remains data version 3 with records and settings',()=>{assert.match(line('backup'),/dataVersion:3/);assert.match(line('backup'),/records:records\(\),settings:settings\(\)/);});
+test('existing daily and monthly fields remain present',()=>{for(const id of ['routes','startMeter','endMeter','fuelAmount','dailyMemo','monthCases','monthItems','monthDistance','monthFuel','fuelCount','avgFuelPerDay'])assert.match(html,new RegExp(`id="${id}"`));});
+test('assistant uses a separate IndexedDB and does not rename record keys',()=>{const db=fs.readFileSync(require('node:path').join(__dirname,'..','assistant-db.js'),'utf8');assert.match(db,/ns-business-assist/);assert.doesNotMatch(db,/netsuperBusinessRecords_v2/);});

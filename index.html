@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ネットスーパー業務記録</title>
+<title>NS業務アシスト</title>
 <meta name="theme-color" content="#2563eb">
 
 <style>
@@ -121,7 +121,19 @@ th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
   .records-table th,.records-table td{padding:7px 2px}
   .records-table .btn.small{padding:6px 2px;font-size:11px}
 }
-.hidden{display:none}
+.hidden{display:none!important}
+.assist-bar{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.assist-running{margin-top:10px;padding:10px 12px;border-radius:12px;background:#dff7ee;color:var(--ok);font-weight:850;text-align:center}
+.assist-setting{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)}
+.assist-setting:last-child{border-bottom:0}
+.assist-setting label{font-weight:800}
+.assist-setting input[type=checkbox]{width:24px;min-height:24px;accent-color:var(--accent)}
+.assist-setting select,.assist-setting input[type=time]{width:auto;min-width:125px;min-height:44px}
+.prompt-modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.48);display:none;align-items:center;justify-content:center;padding:20px}
+.prompt-modal.open{display:flex}
+.prompt-card{width:min(100%,500px);background:#fff;border-radius:20px;padding:20px;box-shadow:0 20px 55px rgba(15,23,42,.24)}
+.prompt-card h2{font-size:20px;margin:0 0 8px}.prompt-card p{margin:0 0 18px;color:#344054}
+.prompt-actions{display:grid;gap:9px}
 
 /* settings page: same HTML, app-like full-screen slide */
 .modal{position:fixed;inset:0;z-index:60;background:#f2f4f7;display:none;transform:translateX(100%);transition:transform .25s ease}
@@ -152,13 +164,13 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="ネットスーパー業務記録">
+<meta name="apple-mobile-web-app-title" content="NS業務アシスト">
 
 </head>
 <body>
 <header>
   <div class="header-inner">
-    <h1>ネットスーパー業務記録</h1>
+    <h1>NS業務アシスト</h1>
     <button class="btn ghost small" id="manageStoresBtn" aria-label="設定を開く">⚙ 設定</button>
   </div>
 </header>
@@ -195,6 +207,13 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
       <div><button class="btn secondary small" id="showPassBtn">表示</button> <button class="btn secondary small" data-copy="pass">コピー</button></div>
     </div>
   </div>
+  <div id="assistControls" class="assist-bar">
+    <button class="btn primary" id="startAssist">▶ 稼働開始</button>
+    <button class="btn danger hidden" id="endAssist">業務終了</button>
+    <button class="btn secondary hidden" id="cancelAssist">稼働中止</button>
+  </div>
+  <div class="assist-running hidden" id="assistRunning"></div>
+  <div class="status" id="assistStatus"></div>
 </section>
 
 <section class="card">
@@ -268,6 +287,27 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
     </div>
 
     <section class="settings-card">
+      <h3 style="margin:0 0 4px">業務アシスト</h3>
+      <div class="assist-setting"><label for="assistEnabled">業務アシスト</label><input id="assistEnabled" type="checkbox"></div>
+      <p class="muted">OFFでは従来どおり、業務記録・集計機能だけを使用します。</p>
+      <div id="assistDetails">
+        <div class="assist-setting"><label for="assistMethod">通知方法</label><select id="assistMethod"><option value="voice">音声アシスト</option><option value="alarm">アラート音</option></select></div>
+        <p class="muted">音声アシストは本アプリ使用中に固定音声で知らせます。バックグラウンド・画面ロック中は端末の通知音になります。</p>
+        <div class="assist-setting"><label for="loadNotify">積込時刻通知</label><input id="loadNotify" type="checkbox"></div>
+        <div class="assist-setting"><label for="deliveryNotify">配達開始時刻通知</label><input id="deliveryNotify" type="checkbox"></div>
+        <div class="assist-setting"><label for="infoRepeats">情報通知の音声回数</label><select id="infoRepeats"><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></div>
+        <div class="assist-setting"><label for="dispatchTime">出庫報告確認</label><input id="dispatchTime" type="time"></div>
+        <div class="assist-setting"><label for="arrivalTime">1便・1件目到着確認</label><input id="arrivalTime" type="time"></div>
+        <div class="field" id="assistRegistrationRow">
+          <label for="assistRegistrationCode">通知サーバー接続コード</label>
+          <input id="assistRegistrationCode" type="password" autocomplete="off" placeholder="初回接続時のみ">
+        </div>
+        <p class="muted">未完了・無操作の場合は初回送信から5分後に1回だけ再通知します。終了確認は21:00・21:30・22:00です。</p>
+      </div>
+      <button class="btn ok full" id="saveAssistSettings">業務アシスト設定を保存</button>
+    </section>
+
+    <section class="settings-card">
       <h3 style="margin:0 0 12px">店舗管理</h3>
       <div id="storeList"></div>
       <button class="btn primary full" id="addStoreBtn">店舗を追加</button>
@@ -324,6 +364,13 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
 </div>
 
 <div class="copy-toast" id="toast">コピーしました</div>
+<div class="prompt-modal" id="assistPrompt" role="dialog" aria-modal="true" aria-labelledby="assistPromptTitle">
+  <section class="prompt-card">
+    <h2 id="assistPromptTitle">確認</h2>
+    <p id="assistPromptBody"></p>
+    <div class="prompt-actions" id="assistPromptActions"></div>
+  </section>
+</div>
 <script>
 (()=>{
 const LEGACY_RECORDS='netsuperDailyRecords_v1',LEGACY_SETTINGS='netsuperDailySettings_v1';
@@ -388,6 +435,10 @@ migrate();bind();$('monthSelect').value=today().slice(0,7);refreshStores();loadD
 })();
 </script>
 
+<script src="./assistant-config.js"></script>
+<script src="./assistant-core.js"></script>
+<script src="./assistant-db.js"></script>
+<script src="./assistant.js"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
