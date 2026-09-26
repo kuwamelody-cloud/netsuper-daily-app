@@ -1,6 +1,5 @@
-// Set this to the permanent HTTPS notification backend before production release.
-// Keeping it empty leaves business records fully usable while server notifications stay unavailable.
+// Permanent HTTPS notification backend for NS Business Assist.
 globalThis.NS_ASSIST_CONFIG = Object.freeze({
-  apiBase: "",
+  apiBase: "https://ns-business-assist.kuwa-melody.workers.dev",
   version: 1
 });

@@ -4,6 +4,7 @@
   "main": "src/worker.mjs",
   "compatibility_date": "2026-09-26",
   "workers_dev": true,
+  "preview_urls": false,
   "durable_objects": {
     "bindings": [
       {
@@ -24,6 +25,6 @@
   "vars": {
     "ALLOWED_ORIGIN": "https://kuwamelody-cloud.github.io",
     "VAPID_SUBJECT": "https://github.com/kuwamelody-cloud/netsuper-daily-app",
-    "VAPID_PUBLIC_KEY": "SET_AFTER_RUNNING_NPM_RUN_KEYGEN"
+    "VAPID_PUBLIC_KEY": "BB4PhdluXuCjemkFI2lBLRUHufmbHHr6HL3bTO9jJhWRoolilRH5my5n6NUSNqQiGMQ3aLHLCawFqrm-0_O1Bvo"
   }
 }
