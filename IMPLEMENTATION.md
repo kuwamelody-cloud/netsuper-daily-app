@@ -19,14 +19,15 @@
 - `assistant-db.js`: 端末内の設定、稼働状態、未送信操作
 - `assistant.js`: 設定画面、稼働開始・終了、前面音声、通知回答
 - `service-worker.js`: Web Pushの表示、通知ボタン、オフライン時の回答保持
-- `backend/`: 常時稼働の通知スケジューラーとWeb Push送信
+- `backend/`: Cloudflare Worker API、SQLite Durable Object、Alarm、Cron監視、Web Push送信
 
 ## 公開前に必要な設定
 
-1. 通知バックエンドをHTTPSかつ永続ディスク付きの環境へ配置する。
-2. バックエンドの許可元を `https://kuwamelody-cloud.github.io` に限定する。
-3. `assistant-config.js` の `apiBase` にバックエンドURLを設定する。
-4. Marinで生成した固定MP3を `audio/` に配置する。
-5. GitHub Pagesの検証用URLで通知、再通知、終了、既存記録の回帰確認を行ってから本番へ反映する。
+1. VAPID鍵と初回接続コードを生成し、秘密値をCloudflare Secretへ登録する。
+2. Cloudflare Workers Freeへ配置し、SQLite Durable Object、Alarm、15分ごとのCron監視を有効にする。
+3. バックエンドの許可元を `https://kuwamelody-cloud.github.io` に限定する。
+4. `assistant-config.js` の `apiBase` にWorker URLを設定する。
+5. Marinで生成した固定MP3を `audio/` に配置する。
+6. GitHub Pagesの検証用URLで通知、5分後の再通知、完了停止、再起動復元、既存記録の回帰確認を行ってから本番へ反映する。
 
 Androidの通知ボタンは回答を直接反映する。iOSでは通知をタップしてPWA内の確認画面から回答する。どちらも未送信回答を端末内に保持し、通信復帰後に再送する。

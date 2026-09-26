@@ -1,8 +1,16 @@
 {
-  "name":"ns-business-assist-backend",
-  "version":"0.1.0",
-  "private":true,
-  "type":"module",
-  "scripts":{"start":"node server.mjs","test":"node --test tests/*.test.mjs"},
-  "dependencies":{"web-push":"3.6.7"}
+  "name": "ns-business-assist-worker",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test tests/*.test.mjs",
+    "keygen": "node scripts/generate-secrets.mjs",
+    "smoke": "node scripts/smoke-local.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.141.0"
+  }
 }

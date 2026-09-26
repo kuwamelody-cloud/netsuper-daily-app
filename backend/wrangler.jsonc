@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ns-business-assist",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ASSIST",
+        "class_name": "AssistCoordinator"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AssistCoordinator"]
+    }
+  ],
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
+  "vars": {
+    "ALLOWED_ORIGIN": "https://kuwamelody-cloud.github.io",
+    "VAPID_SUBJECT": "https://github.com/kuwamelody-cloud/netsuper-daily-app",
+    "VAPID_PUBLIC_KEY": "SET_AFTER_RUNNING_NPM_RUN_KEYGEN"
+  }
+}

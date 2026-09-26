@@ -5,9 +5,9 @@
 ## 開発時の確認
 
 - 画面・スケジュール・既存機能: `node --test tests/*.test.cjs`
-- 通知サーバー: `cd backend` の後に `npm install`、`npm test`、`npm start`
+- 通知バックエンド: `cd backend` の後に `pnpm install`、`pnpm test`、`pnpm dev`
 
-本番公開には、常時稼働するHTTPSの通知サーバー、`assistant-config.js`の接続先設定、固定音声ファイルが必要です。詳細は `IMPLEMENTATION.md` と `backend/README.md` を参照してください。
+本番公開には、Cloudflare Workers Freeへの通知バックエンド配置、`assistant-config.js`の接続先設定、固定音声ファイルが必要です。詳細は `IMPLEMENTATION.md` と `backend/README.md` を参照してください。
 
 ## GitHub Pagesへの更新手順
 1. ZIPを展開します。
