@@ -2,7 +2,7 @@
   'use strict';
   const core=window.NSAssistCore,db=window.NSAssistDB,config=window.NS_ASSIST_CONFIG||{apiBase:''};
   const $=id=>document.getElementById(id);
-  let swRegistration,currentPrompt=null,timer=null,audioContext=null;
+  let swRegistration,currentPrompt=null,timer=null,audioContext=null,voicePlayer=null,voiceReady=Promise.resolve();
   const apiBase=String(config.apiBase||'').replace(/\/$/,'');
   const routeInputs=()=>Array.from({length:6},(_,i)=>({cases:$(`r${i+1}c`)?.value??'',items:$(`r${i+1}i`)?.value??''}));
   const routes=()=>routeInputs().map(route=>route.cases===''?null:Number(route.cases));
@@ -124,33 +124,43 @@
   async function endSession(reason='ended'){
     const session=await db.get('session');
     if(!session?.active)return;
+    const saved=await settings();
     const next=core.reduceSession(session,{type:reason==='ended'?'end':'cancel'});
     await db.set('session',next);
     await queue('/api/session/end',{sessionId:next.id,reason});
     await db.addEvent('session-ended',{reason});
     await db.set('pendingPrompt',null);
     closePrompt();
+    closeMissingPrompt();
     await render();
-    if(reason==='ended')showMessage('お疲れ様でした！シンクロで業務終了報告をしてください。最後に、本日の業務データ入力も忘れずにお願いします');
+    if(reason==='ended'){
+      if(saved.method==='voice')await playVoice('completion',1);else await playAlert(1);
+      showMessage('お疲れ様でした！シンクロで業務終了報告をしてください。最後に、本日の業務データ入力も忘れずにお願いします');
+    }
   }
 
   function missingEndFields(){return core.missingEndFields({endMeter:$('endMeter')?.value??'',routes:routeInputs()});}
 
-  function updateEndAvailability(active){
-    const missing=active?missingEndFields():[],message=$('assistEndValidation');
-    $('endAssist').disabled=active&&missing.length>0;
-    message.classList.toggle('hidden',!active||missing.length===0);
-    message.style.color='var(--danger)';
-    message.textContent=missing.length?`未入力の項目があります\n業務終了前に、各便の件数・個数をすべて入力してください。\n${missing.join('\n')}`:'';
+  function showMissingPrompt(missing){
+    $('assistMissingList').innerHTML='';
+    missing.forEach(item=>{
+      const entry=document.createElement('li');
+      entry.textContent=item;
+      $('assistMissingList').appendChild(entry);
+    });
+    $('assistMissingPrompt').classList.add('open');
   }
+
+  function closeMissingPrompt(){$('assistMissingPrompt').classList.remove('open');}
 
   async function requestEnd(){
     const missing=missingEndFields();
     if(missing.length){
       closePrompt();
-      updateEndAvailability(true);
+      showMissingPrompt(missing);
       return;
     }
+    closeMissingPrompt();
     if(confirm('今日の業務アシストを終了しますか？'))await endSession('ended');
   }
 
@@ -211,7 +221,6 @@
     $('cancelAssist').classList.toggle('hidden',!active);
     $('assistRunning').classList.toggle('hidden',!active);
     if(active)$('assistRunning').textContent=`✓ 稼働中（${new Date(session.startedAt).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}開始）`;
-    updateEndAvailability(active);
   }
 
   async function foregroundEvent(payload){
@@ -224,16 +233,27 @@
     try{
       if(!audioContext){const AudioContextClass=window.AudioContext||window.webkitAudioContext;audioContext=AudioContextClass?new AudioContextClass():null;}
       if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});
+      if(!voicePlayer){
+        voicePlayer=new Audio('./audio/checkin.mp3');
+        voicePlayer.preload='auto';
+        voicePlayer.muted=true;
+        voiceReady=voicePlayer.play().then(()=>{
+          voicePlayer.pause();
+          voicePlayer.currentTime=0;
+          voicePlayer.muted=false;
+        }).catch(()=>{voicePlayer.muted=false;});
+      }
     }catch{}
     return audioContext;
   }
 
-  function playAlert(repeat=1){
+  async function playAlert(repeat=1){
     try{
       const context=unlockAudio();
       if(!context)return;
+      if(context.state==='suspended')await context.resume();
       for(let index=0;index<repeat;index++){
-        const oscillator=context.createOscillator(),gain=context.createGain(),start=context.currentTime+index*.8;
+        const oscillator=context.createOscillator(),gain=context.createGain(),start=context.currentTime+.04+index*.8;
         oscillator.frequency.value=740;
         gain.gain.setValueAtTime(.0001,start);
         gain.gain.exponentialRampToValueAtTime(.18,start+.02);
@@ -248,13 +268,19 @@
   async function playVoice(key,repeat=1){
     const src=`./audio/${key}.mp3`;
     try{
+      unlockAudio();
+      await voiceReady;
       for(let index=0;index<repeat;index++){
-        const audio=new Audio(src);
-        await audio.play();
-        await new Promise((resolve,reject)=>{audio.onended=resolve;audio.onerror=()=>reject(Error('voice unavailable'));});
+        voicePlayer.pause();
+        voicePlayer.src=src;
+        voicePlayer.currentTime=0;
+        const finished=new Promise((resolve,reject)=>{voicePlayer.onended=resolve;voicePlayer.onerror=()=>reject(Error('voice unavailable'));});
+        await voicePlayer.play();
+        await finished;
+        if(index<repeat-1)await new Promise(resolve=>setTimeout(resolve,350));
       }
     }catch{
-      playAlert(repeat);
+      await playAlert(repeat);
       showMessage('音声データが利用できないため、アラート音でお知らせしました。');
     }
   }
@@ -267,13 +293,12 @@
     }
     $('startAssist').onclick=startSession;
     $('endAssist').onclick=requestEnd;
+    $('closeAssistMissing').onclick=closeMissingPrompt;
     $('cancelAssist').onclick=()=>{if(confirm('誤って開始した業務アシストを中止しますか？'))endSession('cancelled');};
     $('saveAssistSettings').onclick=()=>saveSettings().catch(error=>{$('assistSettingsStatus').textContent=error.message;$('assistSettingsStatus').style.color='var(--danger)';});
     document.querySelectorAll('#routes input').forEach(element=>{
-      element.addEventListener('input',()=>render().catch(()=>{}));
       element.addEventListener('change',()=>updateRoutes().catch(()=>{}));
     });
-    $('endMeter').addEventListener('input',()=>render().catch(()=>{}));
     document.addEventListener('pointerdown',unlockAudio,{once:true,capture:true});
     navigator.serviceWorker?.addEventListener('message',event=>{
       if(event.data?.type==='assist-event')foregroundEvent(event.data.payload);
