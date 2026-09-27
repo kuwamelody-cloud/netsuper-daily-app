@@ -26,26 +26,21 @@ test('business end feedback and completion message are present',()=>{
   assert.match(html,/id="assistMissingPrompt"/);
   assert.match(html,/未入力の項目があります/);
   assert.match(html,/業務終了前に、以下の項目を入力してください/);
-  assert.match(html,/固定音声が未実装の通知は短いアラート音になります/);
+  assert.match(html,/固定音声を再生できない場合は短いアラート音になります/);
   assert.match(assistant,/showMissingPrompt\(missing\)/);
   assert.doesNotMatch(assistant,/endAssist'\)\.disabled/);
   assert.doesNotMatch(serviceWorker,/directActions=\[[^\]]*'end'/);
 });
-test('available fixed Marin assets are bundled and pending clips use fallback',()=>{
+test('all fixed voice assets are bundled and cached with alert fallback',()=>{
   const root=require('node:path').join(__dirname,'..');
   const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');
   const serviceWorker=fs.readFileSync(require('node:path').join(root,'service-worker.js'),'utf8');
-  const available=['checkin','dispatch','arrival-1',...Array.from({length:6},(_,i)=>`load-${i+1}`)];
-  const pending=[...Array.from({length:6},(_,i)=>`delivery-${i+1}`),'completion','end'];
-  for(const name of available){
+  const names=['checkin','dispatch','arrival-1',...Array.from({length:6},(_,i)=>`load-${i+1}`),...Array.from({length:6},(_,i)=>`delivery-${i+1}`),'completion','end'];
+  for(const name of names){
     const file=require('node:path').join(root,'audio',`${name}.mp3`);
     assert.ok(fs.existsSync(file),`missing audio/${name}.mp3`);
     assert.ok(fs.statSync(file).size>1000,`empty audio/${name}.mp3`);
     assert.match(serviceWorker,new RegExp(`audio/${name}\\.mp3`));
-  }
-  for(const name of pending){
-    assert.ok(!fs.existsSync(require('node:path').join(root,'audio',`${name}.mp3`)),`unexpected audio/${name}.mp3`);
-    assert.doesNotMatch(serviceWorker,new RegExp(`audio/${name}\\.mp3`));
   }
   assert.match(assistant,/playVoice\('completion',1\)/);
   assert.match(assistant,/setTimeout\(resolve,350\)/);

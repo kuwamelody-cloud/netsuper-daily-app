@@ -1,10 +1,10 @@
-# Fixed Marin voice assets
+# Fixed voice assets
 
 These MP3 files are generated once during development and bundled with the PWA. The app never calls a speech-generation API during normal use. Background and lock-screen notifications continue to use the operating system's notification sound.
 
-The field-test build currently contains `checkin`, `dispatch`, `arrival-1`, and `load-1` through `load-6`. The six `delivery` clips, `completion`, and `end` are pending. Until those files are added, the foreground player automatically uses the short alert tone for those events. Pending filenames are deliberately excluded from the service-worker pre-cache so the PWA remains installable offline.
+The active set was supplied as 48 kHz, 16-bit mono WAV files and converted to 128 kbps MP3 without changing the wording or playback speed. All 17 clips are bundled and pre-cached for offline foreground playback. If a file cannot be played, the app automatically uses its short alert tone.
 
-## Generation settings
+## Earlier Marin generation reference
 
 - Model: `gpt-4o-mini-tts`
 - Voice: `marin`
