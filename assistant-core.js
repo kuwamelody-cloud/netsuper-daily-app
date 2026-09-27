@@ -6,7 +6,7 @@
   const LOAD_TIMES=['09:30','11:30','13:30','15:30','17:30','19:30'];
   const DELIVERY_TIMES=['10:00','12:00','14:00','16:00','18:00','20:00'];
   const END_TIMES=['21:00','21:30','22:00'];
-  const DEFAULT_SETTINGS=Object.freeze({enabled:false,method:'voice',loadEnabled:true,deliveryEnabled:true,infoRepeats:1,dispatchTime:'09:50',arrivalTime:'09:59'});
+  const DEFAULT_SETTINGS=Object.freeze({enabled:true,method:'voice',loadEnabled:true,deliveryEnabled:true,infoRepeats:1,dispatchTime:'09:50',arrivalTime:'09:59'});
   const CONFIRMATIONS={
     arrival:{title:'1便・1件目の到着確認',body:'1便、1件目の到着報告は完了していますか？',actions:[['done','入力済み'],['pending','まだ到着していない']]},
     dispatch:{title:'出庫報告の確認',body:'シンクロの出庫報告は完了していますか？',actions:[['done','入力済み'],['pending','未出庫']]},
@@ -14,6 +14,9 @@
     end:{title:'業務終了の確認',body:'業務終了が確認できていません。シンクロの操作は完了していますか？',actions:[['working','まだ業務中'],['synchro_done','シンクロ入力済み'],['end','既に業務終了']]}
   };
   function validTime(value){return /^([01]\d|2[0-3]):[0-5]\d$/.test(value||'');}
+  function localDate(value=new Date()){
+    return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;
+  }
   function mergeSettings(value={}){
     const s={...DEFAULT_SETTINGS,...value};
     s.enabled=!!s.enabled;s.loadEnabled=!!s.loadEnabled;s.deliveryEnabled=!!s.deliveryEnabled;
@@ -31,8 +34,10 @@
     };
     LOAD_TIMES.forEach((time,i)=>{if(s.loadEnabled&&routes[i]!==0)add(`load-${i+1}`,'info',time,`${i+1}便・積み込み`,` ${i+1}便、積み込み時刻になりました`.trim(),false,1,{route:i+1,repeat:s.infoRepeats,voiceKey:`load-${i+1}`});});
     DELIVERY_TIMES.forEach((time,i)=>{if(s.deliveryEnabled&&routes[i]!==0)add(`delivery-${i+1}`,'info',time,`${i+1}便・配達開始`,`${i+1}便、配達開始時刻になりました`,false,1,{route:i+1,repeat:s.infoRepeats,voiceKey:`delivery-${i+1}`});});
-    add('dispatch','dispatch',s.dispatchTime,CONFIRMATIONS.dispatch.title,CONFIRMATIONS.dispatch.body,true,2,{actions:CONFIRMATIONS.dispatch.actions,voiceKey:'dispatch'});
-    if(routes[0]!==0)add('arrival-1','arrival',s.arrivalTime,CONFIRMATIONS.arrival.title,CONFIRMATIONS.arrival.body,true,2,{actions:CONFIRMATIONS.arrival.actions,voiceKey:'arrival-1'});
+    if(routes[0]!==0){
+      add('dispatch','dispatch',s.dispatchTime,CONFIRMATIONS.dispatch.title,CONFIRMATIONS.dispatch.body,true,2,{actions:CONFIRMATIONS.dispatch.actions,voiceKey:'dispatch'});
+      add('arrival-1','arrival',s.arrivalTime,CONFIRMATIONS.arrival.title,CONFIRMATIONS.arrival.body,true,2,{actions:CONFIRMATIONS.arrival.actions,voiceKey:'arrival-1'});
+    }
     END_TIMES.forEach((time,i)=>add(`end-${i+1}`,'end',time,CONFIRMATIONS.end.title,CONFIRMATIONS.end.body,true,1,{sequence:i+1,actions:CONFIRMATIONS.end.actions,voiceKey:'end'}));
     return events.sort((a,b)=>a.dueAt-b.dueAt);
   }
@@ -45,5 +50,14 @@
     if(action.type==='route_count')next.routes={...(next.routes||{}),[action.route]:action.value};
     return next;
   }
-  return {LOAD_TIMES,DELIVERY_TIMES,END_TIMES,DEFAULT_SETTINGS,CONFIRMATIONS,mergeSettings,makeSchedule,reduceSession,at};
+  function missingEndFields({endMeter,routes=[]}={}){
+    const missing=[];
+    if(endMeter===null||endMeter===undefined||String(endMeter).trim()==='')missing.push('終了メーター');
+    routes.forEach((route,index)=>{
+      if(route?.cases===null||route?.cases===undefined||String(route.cases).trim()==='')missing.push(`${index+1}便：件数`);
+      if(route?.items===null||route?.items===undefined||String(route.items).trim()==='')missing.push(`${index+1}便：個数`);
+    });
+    return missing;
+  }
+  return {LOAD_TIMES,DELIVERY_TIMES,END_TIMES,DEFAULT_SETTINGS,CONFIRMATIONS,mergeSettings,makeSchedule,reduceSession,missingEndFields,localDate,at};
 });

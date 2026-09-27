@@ -15,10 +15,10 @@ class FakeContext{
   blockConcurrencyWhile(fn){this.ready=fn();}
 }
 
-async function subscription(){
+async function subscription(suffix='Q'){
   const keys=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
   const raw=await crypto.subtle.exportKey('raw',keys.publicKey);
-  return {endpoint:'https://web.push.apple.com/Q',keys:{p256dh:base64url(raw),auth:base64url(crypto.getRandomValues(new Uint8Array(16)))}};
+  return {endpoint:`https://web.push.apple.com/${suffix}`,keys:{p256dh:base64url(raw),auth:base64url(crypto.getRandomValues(new Uint8Array(16)))}};
 }
 const call=(coordinator,path,body,token)=>coordinator.fetch(new Request('https://assist.internal'+path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)}));
 
@@ -37,4 +37,22 @@ test('wrong registration code is rejected',async()=>{
   const ctx=new FakeContext(),coordinator=new AssistCoordinator(ctx,{REGISTRATION_CODE:'join-code'});await ctx.ready;
   const response=await call(coordinator,'/api/install',{registrationCode:'wrong',subscription:await subscription()});
   assert.equal(response.status,401);
+});
+
+test('installations cannot read or modify another installation session',async()=>{
+  const ctx=new FakeContext(),coordinator=new AssistCoordinator(ctx,{REGISTRATION_CODE:'join-code'});await ctx.ready;
+  const installA=await call(coordinator,'/api/install',{registrationCode:'join-code',subscription:await subscription('A')});
+  const installB=await call(coordinator,'/api/install',{registrationCode:'join-code',subscription:await subscription('B')});
+  const tokenA=(await installA.json()).token,tokenB=(await installB.json()).token,now=Date.now();
+  const sessionA={id:crypto.randomUUID(),date:'2026-09-27',startedAt:now,routes:{1:1}};
+  const sessionB={id:crypto.randomUUID(),date:'2026-09-27',startedAt:now,routes:{1:1}};
+  await call(coordinator,'/api/session/start',{session:sessionA,schedule:[],timeZone:'Asia/Tokyo'},tokenA);
+  await call(coordinator,'/api/session/start',{session:sessionB,schedule:[],timeZone:'Asia/Tokyo'},tokenB);
+  const forbidden=await call(coordinator,'/api/session/end',{sessionId:sessionB.id,reason:'ended'},tokenA);
+  assert.equal(forbidden.status,400);
+  const stateA=await (await call(coordinator,'/api/state',undefined,tokenA)).json();
+  const stateB=await (await call(coordinator,'/api/state',undefined,tokenB)).json();
+  assert.deepEqual(stateA.sessions.map(x=>x.id),[sessionA.id]);
+  assert.deepEqual(stateB.sessions.map(x=>x.id),[sessionB.id]);
+  assert.equal(stateB.sessions[0].active,true);
 });
