@@ -18,33 +18,63 @@ test('business end feedback and completion message are present',()=>{
   const assistant=fs.readFileSync(require('node:path').join(__dirname,'..','assistant.js'),'utf8');
   const serviceWorker=fs.readFileSync(require('node:path').join(__dirname,'..','service-worker.js'),'utf8');
   assert.match(assistant,/変更内容は次回の稼働開始から反映されます/);
-  assert.match(assistant,/お疲れ様でした！シンクロで業務終了報告をしてください/);
-  assert.match(assistant,/voicePlayer\.onerror=\(\)=>reject/);
-  assert.match(assistant,/document\.addEventListener\('pointerdown',unlockAudio/);
+  assert.match(assistant,/お疲れ様でした！ShinQLOで業務終了報告をしてください/);
+  assert.match(assistant,/context\.decodeAudioData/);
+  assert.doesNotMatch(assistant,/document\.addEventListener\('pointerdown',unlockAudio/);
   assert.match(assistant,/await expirePreviousDaySession\(\)/);
   assert.doesNotMatch(html,/id="assistEndValidation"/);
   assert.match(html,/id="assistMissingPrompt"/);
   assert.match(html,/未入力の項目があります/);
   assert.match(html,/業務終了前に、以下の項目を入力してください/);
-  assert.match(html,/固定音声を再生できない場合は短いアラート音になります/);
+  assert.match(html,/業務開始・業務終了の操作時だけ再生します/);
   assert.match(assistant,/showMissingPrompt\(missing\)/);
   assert.doesNotMatch(assistant,/endAssist'\)\.disabled/);
   assert.doesNotMatch(serviceWorker,/directActions=\[[^\]]*'end'/);
 });
-test('all fixed voice assets are bundled and cached with alert fallback',()=>{
+test('only start and completion voice assets are bundled and cached with alert fallback',()=>{
   const root=require('node:path').join(__dirname,'..');
   const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');
   const serviceWorker=fs.readFileSync(require('node:path').join(root,'service-worker.js'),'utf8');
-  const names=['checkin','dispatch','arrival-1',...Array.from({length:6},(_,i)=>`load-${i+1}`),...Array.from({length:6},(_,i)=>`delivery-${i+1}`),'completion','end'];
-  for(const name of names){
+  for(const name of ['checkin','completion']){
     const file=require('node:path').join(root,'audio',`${name}.mp3`);
     assert.ok(fs.existsSync(file),`missing audio/${name}.mp3`);
     assert.ok(fs.statSync(file).size>1000,`empty audio/${name}.mp3`);
     assert.match(serviceWorker,new RegExp(`audio/${name}\\.mp3`));
   }
+  const removed=['dispatch','arrival-1',...Array.from({length:6},(_,i)=>`load-${i+1}`),...Array.from({length:6},(_,i)=>`delivery-${i+1}`),'end'];
+  for(const name of removed){
+    assert.equal(fs.existsSync(require('node:path').join(root,'audio',`${name}.mp3`)),false,`obsolete audio/${name}.mp3 remains`);
+    assert.doesNotMatch(serviceWorker,new RegExp(`audio/${name}\\.mp3`));
+  }
   assert.match(assistant,/playVoice\('completion',1\)/);
-  assert.match(assistant,/setTimeout\(resolve,350\)/);
+  assert.match(assistant,/playVoice\('checkin',1\)/);
   assert.match(assistant,/await playAlert\(repeat\)/);
+  assert.doesNotMatch(assistant,/playVoice\(payload\.voiceKey/);
+  assert.doesNotMatch(assistant,/voicePlayer\.play\(\)/);
+});
+test('notification tap restores its pending confirmation whenever the PWA resumes',()=>{
+  const root=require('node:path').join(__dirname,'..');
+  const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');
+  const serviceWorker=fs.readFileSync(require('node:path').join(root,'service-worker.js'),'utf8');
+  assert.match(serviceWorker,/if\(payload\.requiresAction\)await NSAssistDB\.set\("pendingPrompt",payload\)/);
+  assert.match(assistant,/async function restorePendingPrompt\(\)/);
+  assert.match(assistant,/window\.addEventListener\('focus',resume\)/);
+  assert.match(assistant,/window\.addEventListener\('pageshow',resume\)/);
+  assert.match(assistant,/visibilitychange/);
+  assert.doesNotMatch(serviceWorker,/silent:visible/);
+});
+test('ShinQLO credentials use a masked field and survive other settings saves',()=>{
+  assert.match(html,/ShinQLOログイン情報/);
+  assert.match(html,/id="shinQloLoginId"/);
+  assert.match(html,/id="shinQloPassword" type="password"/);
+  assert.match(html,/id="showShinQloPassword"/);
+  assert.match(line('saveStoreEditor'),/\.\.\.old/);
+  assert.match(line('saveShinQloSettings'),/shinQloLoginId/);
+  assert.match(line('saveShinQloSettings'),/shinQloPassword/);
+});
+test('manual link is immediately left of settings and targets the published manual site',()=>{
+  assert.match(html,/id="manualLink" href="https:\/\/kuwamelody-cloud\.github\.io\/ns-assist-manual\/"[\s\S]*id="manageStoresBtn"/);
+  assert.match(html,/aria-label="操作マニュアルを開く"/);
 });
 test('new app icons and cache-busted references are present',()=>{
   const root=require('node:path').join(__dirname,'..');

@@ -2,7 +2,8 @@
   'use strict';
   const core=window.NSAssistCore,db=window.NSAssistDB,config=window.NS_ASSIST_CONFIG||{apiBase:''};
   const $=id=>document.getElementById(id);
-  let swRegistration,currentPrompt=null,timer=null,audioContext=null,voicePlayer=null,voiceReady=Promise.resolve();
+  let swRegistration,currentPrompt=null,timer=null,audioContext=null;
+  const voiceBuffers=new Map();
   const apiBase=String(config.apiBase||'').replace(/\/$/,'');
   const routeInputs=()=>Array.from({length:6},(_,i)=>({cases:$(`r${i+1}c`)?.value??'',items:$(`r${i+1}i`)?.value??''}));
   const routes=()=>routeInputs().map(route=>route.cases===''?null:Number(route.cases));
@@ -38,7 +39,6 @@
       method:$('assistMethod').value,
       loadEnabled:$('loadNotify').checked,
       deliveryEnabled:$('deliveryNotify').checked,
-      infoRepeats:$('infoRepeats').value,
       dispatchTime:$('dispatchTime').value,
       arrivalTime:$('arrivalTime').value
     });
@@ -61,7 +61,6 @@
     $('assistMethod').value=saved.method;
     $('loadNotify').checked=saved.loadEnabled;
     $('deliveryNotify').checked=saved.deliveryEnabled;
-    $('infoRepeats').value=saved.infoRepeats;
     $('dispatchTime').value=saved.dispatchTime;
     $('arrivalTime').value=saved.arrivalTime;
     toggleSettings(saved);
@@ -116,7 +115,7 @@
     await queue('/api/session/start',{session,schedule,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});
     await db.addEvent('session-started',{sessionId:session.id});
     await render();
-    const checkin={eventId:'checkin',...core.CONFIRMATIONS.checkin,type:'checkin',voiceKey:'checkin'};
+    const checkin={eventId:'checkin',...core.CONFIRMATIONS.checkin,type:'checkin'};
     if(saved.method==='voice')playVoice('checkin',1);else playAlert(1);
     showPrompt(checkin);
   }
@@ -135,7 +134,7 @@
     await render();
     if(reason==='ended'){
       if(saved.method==='voice')await playVoice('completion',1);else await playAlert(1);
-      showMessage('お疲れ様でした！シンクロで業務終了報告をしてください。最後に、本日の業務データ入力も忘れずにお願いします');
+      showMessage('お疲れ様でした！ShinQLOで業務終了報告をしてください。最後に、本日の業務データ入力も忘れずにお願いします');
     }
   }
 
@@ -154,6 +153,7 @@
   function closeMissingPrompt(){$('assistMissingPrompt').classList.remove('open');}
 
   async function requestEnd(){
+    unlockAudio();
     const missing=missingEndFields();
     if(missing.length){
       closePrompt();
@@ -224,25 +224,24 @@
   }
 
   async function foregroundEvent(payload){
-    const saved=await settings();
-    if(saved.method==='voice')playVoice(payload.voiceKey,payload.repeat||1);else playAlert(payload.repeat||1);
     if(payload.requiresAction)showPrompt(payload);
+  }
+
+  async function restorePendingPrompt(){
+    const pending=await db.get('pendingPrompt');
+    if(!pending?.requiresAction)return;
+    const session=await db.get('session');
+    if(!session?.active||session.id!==pending.sessionId){
+      await db.set('pendingPrompt',null);
+      return;
+    }
+    showPrompt(pending);
   }
 
   function unlockAudio(){
     try{
       if(!audioContext){const AudioContextClass=window.AudioContext||window.webkitAudioContext;audioContext=AudioContextClass?new AudioContextClass():null;}
       if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});
-      if(!voicePlayer){
-        voicePlayer=new Audio('./audio/checkin.mp3');
-        voicePlayer.preload='auto';
-        voicePlayer.muted=true;
-        voiceReady=voicePlayer.play().then(()=>{
-          voicePlayer.pause();
-          voicePlayer.currentTime=0;
-          voicePlayer.muted=false;
-        }).catch(()=>{voicePlayer.muted=false;});
-      }
     }catch{}
     return audioContext;
   }
@@ -268,15 +267,21 @@
   async function playVoice(key,repeat=1){
     const src=`./audio/${key}.mp3`;
     try{
-      unlockAudio();
-      await voiceReady;
+      const context=unlockAudio();
+      if(!context)throw Error('audio unavailable');
+      if(context.state==='suspended')await context.resume();
+      let buffer=voiceBuffers.get(key);
+      if(!buffer){
+        const response=await fetch(src);
+        if(!response.ok)throw Error('voice unavailable');
+        buffer=await context.decodeAudioData(await response.arrayBuffer());
+        voiceBuffers.set(key,buffer);
+      }
       for(let index=0;index<repeat;index++){
-        voicePlayer.pause();
-        voicePlayer.src=src;
-        voicePlayer.currentTime=0;
-        const finished=new Promise((resolve,reject)=>{voicePlayer.onended=resolve;voicePlayer.onerror=()=>reject(Error('voice unavailable'));});
-        await voicePlayer.play();
-        await finished;
+        const source=context.createBufferSource();
+        source.buffer=buffer;
+        source.connect(context.destination);
+        await new Promise(resolve=>{source.onended=resolve;source.start();});
         if(index<repeat-1)await new Promise(resolve=>setTimeout(resolve,350));
       }
     }catch{
@@ -299,22 +304,20 @@
     document.querySelectorAll('#routes input').forEach(element=>{
       element.addEventListener('change',()=>updateRoutes().catch(()=>{}));
     });
-    document.addEventListener('pointerdown',unlockAudio,{once:true,capture:true});
     navigator.serviceWorker?.addEventListener('message',event=>{
       if(event.data?.type==='assist-event')foregroundEvent(event.data.payload);
       if(event.data?.type==='assist-open'&&event.data.payload)showPrompt(event.data.payload);
     });
     window.addEventListener('online',()=>flush().catch(()=>{}));
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden)expirePreviousDaySession().then(()=>flush()).then(()=>render()).catch(()=>{});});
+    const resume=()=>expirePreviousDaySession().then(()=>flush()).then(()=>render()).then(()=>restorePendingPrompt()).catch(()=>{});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)resume();});
+    window.addEventListener('focus',resume);
+    window.addEventListener('pageshow',resume);
     timer=setInterval(()=>{if(!document.hidden)expirePreviousDaySession().then(()=>flush()).then(()=>render()).catch(()=>{});},30000);
     await flush().catch(()=>{});
     await expirePreviousDaySession();
     await render();
-    const params=new URLSearchParams(location.search);
-    if(params.has('assistEvent')){
-      const pending=await db.get('pendingPrompt');
-      if(pending)showPrompt(pending);
-    }
+    await restorePendingPrompt();
   }
 
   window.addEventListener('load',()=>init().catch(error=>showMessage(error.message,true)));

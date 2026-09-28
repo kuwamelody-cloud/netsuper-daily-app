@@ -9,9 +9,9 @@
   const DEFAULT_SETTINGS=Object.freeze({enabled:true,method:'voice',loadEnabled:true,deliveryEnabled:true,infoRepeats:1,dispatchTime:'09:50',arrivalTime:'09:59'});
   const CONFIRMATIONS={
     arrival:{title:'1便・1件目の到着確認',body:'1便、1件目の到着報告は完了していますか？',actions:[['done','入力済み'],['pending','まだ到着していない']]},
-    dispatch:{title:'出庫報告の確認',body:'シンクロの出庫報告は完了していますか？',actions:[['done','入力済み'],['pending','未出庫']]},
-    checkin:{title:'着車報告の確認',body:'おはようございます！シンクロの着車報告は完了していますか？',actions:[['done','入力済み'],['pending','まだ']]},
-    end:{title:'業務終了の確認',body:'業務終了が確認できていません。シンクロの操作は完了していますか？',actions:[['working','まだ業務中'],['synchro_done','シンクロ入力済み'],['end','既に業務終了']]}
+    dispatch:{title:'出庫報告の確認',body:'ShinQLOの出庫報告は完了していますか？',actions:[['done','入力済み'],['pending','未出庫']]},
+    checkin:{title:'着車報告の確認',body:'おはようございます！ShinQLOの着車報告は完了していますか？',actions:[['done','入力済み'],['pending','まだ']]},
+    end:{title:'業務終了の確認',body:'業務終了が確認できていません。ShinQLOの操作は完了していますか？',actions:[['working','まだ業務中'],['synchro_done','ShinQLO入力済み'],['end','既に業務終了']]}
   };
   function validTime(value){return /^([01]\d|2[0-3]):[0-5]\d$/.test(value||'');}
   function localDate(value=new Date()){
@@ -32,13 +32,13 @@
       const dueAt=at(date,time);if(dueAt<=now)return;
       events.push({id,type,dueAt,title,body,requiresAction,maxAttempts,retryDelayMs:requiresAction&&maxAttempts>1?300000:0,...extra});
     };
-    LOAD_TIMES.forEach((time,i)=>{if(s.loadEnabled&&routes[i]!==0)add(`load-${i+1}`,'info',time,`${i+1}便・積み込み`,` ${i+1}便、積み込み時刻になりました`.trim(),false,1,{route:i+1,repeat:s.infoRepeats,voiceKey:`load-${i+1}`});});
-    DELIVERY_TIMES.forEach((time,i)=>{if(s.deliveryEnabled&&routes[i]!==0)add(`delivery-${i+1}`,'info',time,`${i+1}便・配達開始`,`${i+1}便、配達開始時刻になりました`,false,1,{route:i+1,repeat:s.infoRepeats,voiceKey:`delivery-${i+1}`});});
+    LOAD_TIMES.forEach((time,i)=>{if(s.loadEnabled&&routes[i]!==0)add(`load-${i+1}`,'info',time,`${i+1}便・積み込み`,` ${i+1}便、積み込み時刻になりました`.trim(),false,1,{route:i+1});});
+    DELIVERY_TIMES.forEach((time,i)=>{if(s.deliveryEnabled&&routes[i]!==0)add(`delivery-${i+1}`,'info',time,`${i+1}便・配達開始`,`${i+1}便、配達開始時刻になりました`,false,1,{route:i+1});});
     if(routes[0]!==0){
-      add('dispatch','dispatch',s.dispatchTime,CONFIRMATIONS.dispatch.title,CONFIRMATIONS.dispatch.body,true,2,{actions:CONFIRMATIONS.dispatch.actions,voiceKey:'dispatch'});
-      add('arrival-1','arrival',s.arrivalTime,CONFIRMATIONS.arrival.title,CONFIRMATIONS.arrival.body,true,2,{actions:CONFIRMATIONS.arrival.actions,voiceKey:'arrival-1'});
+      add('dispatch','dispatch',s.dispatchTime,CONFIRMATIONS.dispatch.title,CONFIRMATIONS.dispatch.body,true,2,{actions:CONFIRMATIONS.dispatch.actions});
+      add('arrival-1','arrival',s.arrivalTime,CONFIRMATIONS.arrival.title,CONFIRMATIONS.arrival.body,true,2,{actions:CONFIRMATIONS.arrival.actions});
     }
-    END_TIMES.forEach((time,i)=>add(`end-${i+1}`,'end',time,CONFIRMATIONS.end.title,CONFIRMATIONS.end.body,true,1,{sequence:i+1,actions:CONFIRMATIONS.end.actions,voiceKey:'end'}));
+    END_TIMES.forEach((time,i)=>add(`end-${i+1}`,'end',time,CONFIRMATIONS.end.title,CONFIRMATIONS.end.body,true,1,{sequence:i+1,actions:CONFIRMATIONS.end.actions}));
     return events.sort((a,b)=>a.dueAt-b.dueAt);
   }
   function reduceSession(session,action,now=Date.now()){

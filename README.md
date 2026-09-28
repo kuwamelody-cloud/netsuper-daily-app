@@ -7,7 +7,7 @@
 - 画面・スケジュール・既存機能: `node --test tests/*.test.cjs`
 - 通知バックエンド: `cd backend` の後に `pnpm install`、`pnpm test`、`pnpm dev`
 
-通知バックエンドはCloudflare Workers Freeへ配置済みです。Marin固定音声を追加するまでは、フォアグラウンドで短いアラート音へ自動的に切り替わります。詳細は `IMPLEMENTATION.md` と `backend/README.md` を参照してください。
+通知バックエンドはCloudflare Workers Freeへ配置済みです。アプリ独自音声は、利用者が明示的に稼働開始・業務終了を操作した場合だけ再生します。予定時刻とShinQLO重要操作の確認は、OS通知バナーと標準通知音を使用します。詳細は `IMPLEMENTATION.md` と `backend/README.md` を参照してください。
 
 ## GitHub Pagesへの更新手順
 1. ZIPを展開します。

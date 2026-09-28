@@ -38,6 +38,9 @@ input[type=number]{text-align:right}
 .btn.danger{background:#fde8e8;color:var(--danger)}
 .btn.ok{background:#dff7ee;color:var(--ok)}
 .btn.small{padding:8px 10px;font-size:13px;width:auto}
+.header-actions{display:flex;align-items:center;gap:7px}
+.header-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;text-decoration:none;white-space:nowrap}
+.header-actions svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .full{width:100%}
 .basic-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end}
 .basic-grid .field:first-child input{border-radius:14px 0 0 14px;border-right:0}
@@ -173,7 +176,13 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
 <header>
   <div class="header-inner">
     <h1>NS業務アシスト</h1>
-    <button class="btn ghost small" id="manageStoresBtn" aria-label="設定を開く">⚙ 設定</button>
+    <div class="header-actions">
+      <a class="btn ghost small" id="manualLink" href="https://kuwamelody-cloud.github.io/ns-assist-manual/" target="_blank" rel="noopener" aria-label="操作マニュアルを開く">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a2 2 0 0 1 2 2v15a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17a2 2 0 0 1 2-2h2.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>
+        <span>マニュアル</span>
+      </a>
+      <button class="btn ghost small" id="manageStoresBtn" aria-label="設定を開く">⚙ 設定</button>
+    </div>
   </div>
 </header>
 
@@ -294,11 +303,10 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
       <div class="assist-setting"><label for="assistEnabled">業務アシスト</label><input id="assistEnabled" type="checkbox"></div>
       <p class="muted">OFFでは従来どおり、業務記録・集計機能だけを使用します。</p>
       <div id="assistDetails">
-        <div class="assist-setting"><label for="assistMethod">通知方法</label><select id="assistMethod"><option value="voice">音声アシスト</option><option value="alarm">アラート音</option></select></div>
-        <p class="muted">音声アシストは本アプリ使用中に固定音声で知らせます。固定音声を再生できない場合は短いアラート音になります。バックグラウンド・画面ロック中は端末の通知音になります。</p>
+        <div class="assist-setting"><label for="assistMethod">開始・終了時の案内方法</label><select id="assistMethod"><option value="voice">音声アシスト</option><option value="alarm">アラート音</option></select></div>
+        <p class="muted">音声またはアラート音は、業務開始・業務終了の操作時だけ再生します。時刻通知と重要確認通知は、端末の標準通知音と通知バナーでお知らせします。</p>
         <div class="assist-setting"><label for="loadNotify">積込時刻通知</label><input id="loadNotify" type="checkbox"></div>
         <div class="assist-setting"><label for="deliveryNotify">配達開始時刻通知</label><input id="deliveryNotify" type="checkbox"></div>
-        <div class="assist-setting"><label for="infoRepeats">情報通知の音声回数</label><select id="infoRepeats"><option value="1">1回</option><option value="2">2回</option><option value="3">3回</option></select></div>
         <div class="assist-setting"><label for="dispatchTime">出庫報告確認</label><input id="dispatchTime" type="time"></div>
         <div class="assist-setting"><label for="arrivalTime">1便・1件目到着確認</label><input id="arrivalTime" type="time"></div>
         <div class="field" id="assistRegistrationRow">
@@ -309,6 +317,24 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
       </div>
       <button class="btn ok full" id="saveAssistSettings">業務アシスト設定を保存</button>
       <div class="status" id="assistSettingsStatus" aria-live="polite"></div>
+    </section>
+
+    <section class="settings-card">
+      <h3 style="margin:0 0 4px">ShinQLOログイン情報</h3>
+      <p class="muted">再ログインが必要になった場合に確認するための記録欄です。</p>
+      <div class="field">
+        <label for="shinQloLoginId">ログインID</label>
+        <input id="shinQloLoginId" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label for="shinQloPassword">パスワード</label>
+        <div class="login-grid" style="margin:0">
+          <input id="shinQloPassword" type="password" autocomplete="off">
+          <button class="btn secondary small" id="showShinQloPassword" type="button">表示</button>
+        </div>
+      </div>
+      <button class="btn ok full" style="margin-top:10px" id="saveShinQloSettings">ShinQLOログイン情報を保存</button>
+      <div class="status" id="shinQloSettingsStatus" aria-live="polite"></div>
     </section>
 
     <section class="settings-card">
@@ -390,10 +416,10 @@ padding:9px 13px;border-radius:999px;font-size:13px;opacity:0;pointer-events:non
 const LEGACY_RECORDS='netsuperDailyRecords_v1',LEGACY_SETTINGS='netsuperDailySettings_v1';
 const RECORDS='netsuperBusinessRecords_v2',SETTINGS='netsuperBusinessSettings_v2';
 const ROUTES=[['1便','10:00～12:00','0:00'],['2便','12:00～14:00','8:00'],['3便','14:00～16:00','9:00'],['4便','16:00～18:00','11:00'],['5便','18:00～20:00','13:00'],['6便','20:00～21:00','15:00']];
-const $=id=>document.getElementById(id);let dirty=false,snapshot='',passwordVisible=false,pendingNav=null,startMeterAuto=false;
+const $=id=>document.getElementById(id);let dirty=false,snapshot='',passwordVisible=false,shinQloPasswordVisible=false,pendingNav=null,startMeterAuto=false;
 function parse(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
 function records(){return parse(RECORDS,{})}function saveRecords(v){localStorage.setItem(RECORDS,JSON.stringify(v))}
-function settings(){const s=parse(SETTINGS,{stores:[],lastStoreId:'',commonPassword:'',version:3});s.stores=(s.stores||[]).map(x=>({...x,homeDistance:x.homeDistance??''}));s.version=3;return s}function saveSettings(v){localStorage.setItem(SETTINGS,JSON.stringify(v))}
+function settings(){const s=parse(SETTINGS,{stores:[],lastStoreId:'',commonPassword:'',shinQloLoginId:'',shinQloPassword:'',version:3});s.stores=(s.stores||[]).map(x=>({...x,homeDistance:x.homeDistance??''}));s.shinQloLoginId=s.shinQloLoginId||'';s.shinQloPassword=s.shinQloPassword||'';s.version=3;return s}function saveSettings(v){localStorage.setItem(SETTINGS,JSON.stringify(v))}
 function migrate(){if(!localStorage.getItem(RECORDS)){const old=parse(LEGACY_RECORDS,{});saveRecords(old)}if(!localStorage.getItem(SETTINGS)){const old=parse(LEGACY_SETTINGS,{}),names=new Set(Object.values(parse(LEGACY_RECORDS,{})).map(r=>r.storeName).filter(Boolean));if(old.lastStoreName)names.add(old.lastStoreName);const stores=[...names].map((n,i)=>({id:'s'+Date.now()+i,name:n,loginId:'',homeDistance:'',memo:''}));saveSettings({stores,lastStoreId:stores[0]?.id||'',commonPassword:'',version:3})}const s=settings();saveSettings(s)}
 function today(){const d=new Date();return localDate(d)}function localDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function shift(date,n){const [y,m,d]=date.split('-').map(Number),x=new Date(y,m-1,d+n);return localDate(x)}
@@ -433,14 +459,15 @@ function csv(){const m=$('monthSelect').value,rows=Object.values(records()).filt
 function backup(){const data={app:'ネットスーパー業務記録',dataVersion:3,exportedAt:new Date().toISOString(),records:records(),settings:settings()};download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'ネットスーパー業務記録_バックアップ.json');status('バックアップを書き出しました。')}
 function download(blob,name){const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 async function restore(file){try{const data=JSON.parse(await file.text());if(!data.records||!data.settings)throw Error();if(!confirm('現在のアプリ内データをバックアップ内容で置き換えます。実行しますか？'))return;saveRecords(data.records);saveSettings(data.settings);refreshStores();loadDate(today());status('バックアップから復元しました。')}catch{status('バックアップファイルを読み込めませんでした。',true)}}
-function renderStoreEditor(){const s=settings();$('storeList').innerHTML=s.stores.map((x,i)=>`<div class="store-item" data-store="${esc(x.id)}"><div class="field"><label>店舗名</label><input data-k="name" value="${escAttr(x.name)}"></div><div class="field" style="margin-top:7px"><label>店舗ID</label><input data-k="loginId" value="${escAttr(x.loginId||'')}"></div><div class="field" style="margin-top:7px"><label>自宅から店舗までの片道距離</label><input data-k="homeDistance" type="number" inputmode="decimal" min="0" step="0.5" value="${escAttr(x.homeDistance??'')}" placeholder="例：3.5"><div class="muted" style="margin-top:5px">0.5km単位で入力</div></div><div class="field" style="margin-top:7px"><label>店舗メモ</label><textarea data-k="memo">${esc(x.memo||'')}</textarea></div><button class="btn danger small" data-remove="${esc(x.id)}">この店舗を削除</button></div>`).join('');$('commonPassword').value=s.commonPassword||'';document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('この店舗を削除しますか？')){b.closest('.store-item').remove()}})}
-function saveStoreEditor(){const old=settings();const stores=[...document.querySelectorAll('.store-item')].map((el,i)=>({id:el.dataset.store||`s${Date.now()}${i}`,name:el.querySelector('[data-k=name]').value.trim(),loginId:el.querySelector('[data-k=loginId]').value.trim(),homeDistance:el.querySelector('[data-k=homeDistance]').value===''?'':Number(el.querySelector('[data-k=homeDistance]').value),memo:el.querySelector('[data-k=memo]').value.trim()})).filter(x=>x.name);const next={stores,lastStoreId:stores.some(x=>x.id===old.lastStoreId)?old.lastStoreId:(stores[0]?.id||''),commonPassword:$('commonPassword').value.trim(),version:3};saveSettings(next);refreshStores(next.lastStoreId);closeModal('storeModal');status('店舗設定を保存しました。')}
+function renderStoreEditor(){const s=settings();$('storeList').innerHTML=s.stores.map((x,i)=>`<div class="store-item" data-store="${esc(x.id)}"><div class="field"><label>店舗名</label><input data-k="name" value="${escAttr(x.name)}"></div><div class="field" style="margin-top:7px"><label>店舗ID</label><input data-k="loginId" value="${escAttr(x.loginId||'')}"></div><div class="field" style="margin-top:7px"><label>自宅から店舗までの片道距離</label><input data-k="homeDistance" type="number" inputmode="decimal" min="0" step="0.5" value="${escAttr(x.homeDistance??'')}" placeholder="例：3.5"><div class="muted" style="margin-top:5px">0.5km単位で入力</div></div><div class="field" style="margin-top:7px"><label>店舗メモ</label><textarea data-k="memo">${esc(x.memo||'')}</textarea></div><button class="btn danger small" data-remove="${esc(x.id)}">この店舗を削除</button></div>`).join('');$('commonPassword').value=s.commonPassword||'';$('shinQloLoginId').value=s.shinQloLoginId||'';$('shinQloPassword').value=s.shinQloPassword||'';$('shinQloPassword').type='password';shinQloPasswordVisible=false;$('showShinQloPassword').textContent='表示';document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('この店舗を削除しますか？')){b.closest('.store-item').remove()}})}
+function saveStoreEditor(){const old=settings();const stores=[...document.querySelectorAll('.store-item')].map((el,i)=>({id:el.dataset.store||`s${Date.now()}${i}`,name:el.querySelector('[data-k=name]').value.trim(),loginId:el.querySelector('[data-k=loginId]').value.trim(),homeDistance:el.querySelector('[data-k=homeDistance]').value===''?'':Number(el.querySelector('[data-k=homeDistance]').value),memo:el.querySelector('[data-k=memo]').value.trim()})).filter(x=>x.name);const next={...old,stores,lastStoreId:stores.some(x=>x.id===old.lastStoreId)?old.lastStoreId:(stores[0]?.id||''),commonPassword:$('commonPassword').value.trim(),version:3};saveSettings(next);refreshStores(next.lastStoreId);closeModal('storeModal');status('店舗設定を保存しました。')}
+function saveShinQloSettings(){const s=settings();s.shinQloLoginId=$('shinQloLoginId').value.trim();s.shinQloPassword=$('shinQloPassword').value;saveSettings(s);$('shinQloSettingsStatus').textContent='ShinQLOログイン情報を保存しました。'}
 function status(msg,err=false){$('status').style.color=err?'var(--danger)':'var(--ok)';$('status').textContent=msg;setTimeout(()=>{if($('status').textContent===msg)$('status').textContent=''},3200)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function escAttr(s){return esc(s)}
 function openModal(id){$(id).classList.add('open')}function closeModal(id){$(id).classList.remove('open')}
 function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1200)}
 async function copy(text){if(!text||text==='未登録')return;try{await navigator.clipboard.writeText(text);toast('コピーしました')}catch{toast('コピーできませんでした')}}
-function bind(){document.querySelectorAll('#routes input,#startMeter,#endMeter,#fuelAmount,#dailyMemo').forEach(el=>el.addEventListener('input',()=>{calc();markDirty()}));$('startMeter').addEventListener('input',()=>{startMeterAuto=false});$('storeSelect').onchange=()=>{refreshStoreInfo();const date=$('workDate').value;if(!records()[date]&&startMeterAuto){$('startMeter').value=candidateStartMeter(date,$('storeSelect').value)}renderMonth();markDirty()};$('workDate').onchange=e=>{const d=e.target.value;e.target.value=snapshot?JSON.parse(snapshot).date:d;navigate(d)};$('prevDay').onclick=()=>navigate(shift($('workDate').value,-1));$('nextDay').onclick=()=>navigate(shift($('workDate').value,1));$('todayBtn').onclick=()=>navigate(today());$('saveBtn').onclick=()=>saveCurrent();$('clearBtn').onclick=clearCurrent;$('deleteBtn').onclick=deleteCurrent;$('monthSelect').onchange=renderMonth;$('csvBtn').onclick=csv;$('backupBtn').onclick=backup;$('restoreBtn').onclick=()=>$('restoreFile').click();$('restoreFile').onchange=e=>e.target.files[0]&&restore(e.target.files[0]);$('loginToggle').onclick=()=>{const o=$('loginBody').classList.toggle('open');$('loginToggle').lastElementChild.textContent=o?'閉じる':'開く'};$('showPassBtn').onclick=()=>{passwordVisible=!passwordVisible;$('showPassBtn').textContent=passwordVisible?'隠す':'表示';refreshStoreInfo()};document.querySelector('[data-copy=store]').onclick=()=>copy(selectedStore()?.loginId||'');document.querySelector('[data-copy=pass]').onclick=()=>copy(settings().commonPassword||'');$('manageStoresBtn').onclick=()=>{renderStoreEditor();openModal('storeModal')};$('closeStores').onclick=()=>closeModal('storeModal');$('addStoreBtn').onclick=()=>{const div=document.createElement('div');div.className='store-item';div.dataset.store=`s${Date.now()}`;div.innerHTML=`<div class="field"><label>店舗名</label><input data-k="name"></div><div class="field" style="margin-top:7px"><label>店舗ID</label><input data-k="loginId"></div><div class="field" style="margin-top:7px"><label>自宅から店舗までの片道距離</label><input data-k="homeDistance" type="number" inputmode="decimal" min="0" step="0.5" placeholder="例：3.5"><div class="muted" style="margin-top:5px">0.5km単位で入力</div></div><div class="field" style="margin-top:7px"><label>店舗メモ</label><textarea data-k="memo"></textarea></div><button class="btn danger small" data-remove="${div.dataset.store}">この店舗を削除</button>`;$('storeList').appendChild(div);div.querySelector('[data-remove]').onclick=()=>div.remove()};$('saveStoreSettings').onclick=saveStoreEditor;$('openMemoBtn').onclick=()=>{refreshStoreInfo();openModal('memoModal')};$('closeMemo').onclick=()=>{markDirty();closeModal('memoModal')};
+function bind(){document.querySelectorAll('#routes input,#startMeter,#endMeter,#fuelAmount,#dailyMemo').forEach(el=>el.addEventListener('input',()=>{calc();markDirty()}));$('startMeter').addEventListener('input',()=>{startMeterAuto=false});$('storeSelect').onchange=()=>{refreshStoreInfo();const date=$('workDate').value;if(!records()[date]&&startMeterAuto){$('startMeter').value=candidateStartMeter(date,$('storeSelect').value)}renderMonth();markDirty()};$('workDate').onchange=e=>{const d=e.target.value;e.target.value=snapshot?JSON.parse(snapshot).date:d;navigate(d)};$('prevDay').onclick=()=>navigate(shift($('workDate').value,-1));$('nextDay').onclick=()=>navigate(shift($('workDate').value,1));$('todayBtn').onclick=()=>navigate(today());$('saveBtn').onclick=()=>saveCurrent();$('clearBtn').onclick=clearCurrent;$('deleteBtn').onclick=deleteCurrent;$('monthSelect').onchange=renderMonth;$('csvBtn').onclick=csv;$('backupBtn').onclick=backup;$('restoreBtn').onclick=()=>$('restoreFile').click();$('restoreFile').onchange=e=>e.target.files[0]&&restore(e.target.files[0]);$('loginToggle').onclick=()=>{const o=$('loginBody').classList.toggle('open');$('loginToggle').lastElementChild.textContent=o?'閉じる':'開く'};$('showPassBtn').onclick=()=>{passwordVisible=!passwordVisible;$('showPassBtn').textContent=passwordVisible?'隠す':'表示';refreshStoreInfo()};document.querySelector('[data-copy=store]').onclick=()=>copy(selectedStore()?.loginId||'');document.querySelector('[data-copy=pass]').onclick=()=>copy(settings().commonPassword||'');$('manageStoresBtn').onclick=()=>{renderStoreEditor();openModal('storeModal')};$('closeStores').onclick=()=>closeModal('storeModal');$('showShinQloPassword').onclick=()=>{shinQloPasswordVisible=!shinQloPasswordVisible;$('shinQloPassword').type=shinQloPasswordVisible?'text':'password';$('showShinQloPassword').textContent=shinQloPasswordVisible?'隠す':'表示'};$('saveShinQloSettings').onclick=saveShinQloSettings;$('addStoreBtn').onclick=()=>{const div=document.createElement('div');div.className='store-item';div.dataset.store=`s${Date.now()}`;div.innerHTML=`<div class="field"><label>店舗名</label><input data-k="name"></div><div class="field" style="margin-top:7px"><label>店舗ID</label><input data-k="loginId"></div><div class="field" style="margin-top:7px"><label>自宅から店舗までの片道距離</label><input data-k="homeDistance" type="number" inputmode="decimal" min="0" step="0.5" placeholder="例：3.5"><div class="muted" style="margin-top:5px">0.5km単位で入力</div></div><div class="field" style="margin-top:7px"><label>店舗メモ</label><textarea data-k="memo"></textarea></div><button class="btn danger small" data-remove="${div.dataset.store}">この店舗を削除</button>`;$('storeList').appendChild(div);div.querySelector('[data-remove]').onclick=()=>div.remove()};$('saveStoreSettings').onclick=saveStoreEditor;$('openMemoBtn').onclick=()=>{refreshStoreInfo();openModal('memoModal')};$('closeMemo').onclick=()=>{markDirty();closeModal('memoModal')};
 $('leaveSave').onclick=()=>{if(saveCurrent(true))finishPendingNav()};
 $('leaveDiscard').onclick=()=>finishPendingNav();
 $('leaveCancel').onclick=()=>{pendingNav=null;closeModal('leaveModal')};
