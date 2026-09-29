@@ -52,16 +52,43 @@ test('only start and completion voice assets are bundled and cached with alert f
   assert.doesNotMatch(assistant,/playVoice\(payload\.voiceKey/);
   assert.doesNotMatch(assistant,/voicePlayer\.play\(\)/);
 });
-test('notification tap restores its pending confirmation whenever the PWA resumes',()=>{
+test('notification tap restores confirmation and information messages whenever the PWA resumes',()=>{
   const root=require('node:path').join(__dirname,'..');
   const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');
   const serviceWorker=fs.readFileSync(require('node:path').join(root,'service-worker.js'),'utf8');
   assert.match(serviceWorker,/if\(payload\.requiresAction\)await NSAssistDB\.set\("pendingPrompt",payload\)/);
-  assert.match(assistant,/async function restorePendingPrompt\(\)/);
+  assert.match(serviceWorker,/if\(!payload\.requiresAction\)await NSAssistDB\.set\('pendingInfo',payload\)/);
+  assert.match(assistant,/async function restorePendingMessages\(\)/);
+  assert.match(assistant,/if\(info\)showInfoMessage\(info\)/);
   assert.match(assistant,/window\.addEventListener\('focus',resume\)/);
   assert.match(assistant,/window\.addEventListener\('pageshow',resume\)/);
   assert.match(assistant,/visibilitychange/);
   assert.doesNotMatch(serviceWorker,/silent:visible/);
+});
+test('information notification has a close-only modal that locks and restores the background',()=>{
+  const root=require('node:path').join(__dirname,'..');
+  const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');
+  assert.match(assistant,/function showInfoMessage\(payload\)/);
+  assert.match(assistant,/id="closeAssistInfo"[^>]*>閉じる<\/button>/);
+  assert.match(assistant,/db\.set\('pendingInfo',null\)/);
+  assert.match(assistant,/element\.inert=true/);
+  assert.match(assistant,/element\.inert=false/);
+  assert.match(assistant,/window\.scrollTo\(0,promptScrollY\)/);
+  assert.match(html,/body\.prompt-open\{position:fixed/);
+  const infoBody=assistant.slice(assistant.indexOf('function showInfoMessage'),assistant.indexOf('function promptBackgroundTargets'));
+  assert.doesNotMatch(infoBody,/queue\(|reduceSession|saveRecords|saveSettings/);
+});
+test('version 2.00 is defined once and displayed read-only at the bottom of settings',()=>{
+  const root=require('node:path').join(__dirname,'..');
+  const config=fs.readFileSync(require('node:path').join(root,'assistant-config.js'),'utf8');
+  const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');
+  assert.match(config,/appVersion: "2\.00"/);
+  assert.equal((config.match(/2\.00/g)||[]).length,1);
+  assert.doesNotMatch(html,/2\.00/);
+  assert.match(html,/バージョン情報[\s\S]*id="appVersion"/);
+  assert.doesNotMatch(html,/<(?:input|select|textarea)[^>]*id="appVersion"/);
+  assert.match(assistant,/NS業務アシスト Version \$\{config\.appVersion\|\|'--'\}/);
+  assert.ok(html.indexOf('id="appVersion"')>html.indexOf('id="restoreFile"'));
 });
 test('ShinQLO credentials use a masked field and survive other settings saves',()=>{
   assert.match(html,/ShinQLOログイン情報/);

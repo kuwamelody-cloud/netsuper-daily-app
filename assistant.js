@@ -2,7 +2,7 @@
   'use strict';
   const core=window.NSAssistCore,db=window.NSAssistDB,config=window.NS_ASSIST_CONFIG||{apiBase:''};
   const $=id=>document.getElementById(id);
-  let swRegistration,currentPrompt=null,timer=null,audioContext=null;
+  let swRegistration,currentPrompt=null,timer=null,audioContext=null,promptScrollY=0;
   const voiceBuffers=new Map();
   const apiBase=String(config.apiBase||'').replace(/\/$/,'');
   const routeInputs=()=>Array.from({length:6},(_,i)=>({cases:$(`r${i+1}c`)?.value??'',items:$(`r${i+1}i`)?.value??''}));
@@ -148,9 +148,10 @@
       $('assistMissingList').appendChild(entry);
     });
     $('assistMissingPrompt').classList.add('open');
+    lockPromptBackground();
   }
 
-  function closeMissingPrompt(){$('assistMissingPrompt').classList.remove('open');}
+  function closeMissingPrompt(){$('assistMissingPrompt').classList.remove('open');unlockPromptBackground();}
 
   async function requestEnd(){
     unlockAudio();
@@ -200,15 +201,42 @@
 
   function showPrompt(prompt){
     currentPrompt=prompt;
+    db.set('pendingInfo',null).catch(()=>{});
     $('assistPromptTitle').textContent=prompt.title;
     $('assistPromptBody').textContent=prompt.body;
     const actions=prompt.actions||[];
     $('assistPromptActions').innerHTML=actions.map(([value,label])=>`<button class="btn ${value==='done'||value==='end'?'primary':'secondary'}" data-assist-action="${value}">${label}</button>`).join('');
     $('assistPrompt').classList.add('open');
+    lockPromptBackground();
     document.querySelectorAll('[data-assist-action]').forEach(button=>button.onclick=()=>answer(button.dataset.assistAction));
   }
 
-  function closePrompt(){currentPrompt=null;$('assistPrompt').classList.remove('open');}
+  function showInfoMessage(payload){
+    currentPrompt=null;
+    $('assistPromptTitle').textContent=payload.title||'お知らせ';
+    $('assistPromptBody').textContent=payload.body||'';
+    $('assistPromptActions').innerHTML='<button class="btn primary" id="closeAssistInfo" type="button">閉じる</button>';
+    $('assistPrompt').classList.add('open');
+    lockPromptBackground();
+    $('closeAssistInfo').onclick=()=>{closePrompt();db.set('pendingInfo',null).catch(()=>{});};
+  }
+
+  function promptBackgroundTargets(){return document.querySelectorAll('body > header, body > main, body > .modal');}
+  function lockPromptBackground(){
+    if(document.body.classList.contains('prompt-open'))return;
+    promptScrollY=window.scrollY;
+    document.body.style.top=`-${promptScrollY}px`;
+    document.body.classList.add('prompt-open');
+    promptBackgroundTargets().forEach(element=>element.inert=true);
+  }
+  function unlockPromptBackground(){
+    if(document.querySelector('.prompt-modal.open')||!document.body.classList.contains('prompt-open'))return;
+    document.body.classList.remove('prompt-open');
+    document.body.style.top='';
+    promptBackgroundTargets().forEach(element=>element.inert=false);
+    window.scrollTo(0,promptScrollY);
+  }
+  function closePrompt(){currentPrompt=null;$('assistPrompt').classList.remove('open');unlockPromptBackground();}
   function showMessage(message,error=false){$('assistStatus').textContent=message;$('assistStatus').style.color=error?'var(--danger)':'var(--ok)';}
 
   async function render(){
@@ -227,15 +255,18 @@
     if(payload.requiresAction)showPrompt(payload);
   }
 
-  async function restorePendingPrompt(){
+  async function restorePendingMessages(){
     const pending=await db.get('pendingPrompt');
-    if(!pending?.requiresAction)return;
-    const session=await db.get('session');
-    if(!session?.active||session.id!==pending.sessionId){
+    if(pending?.requiresAction){
+      const session=await db.get('session');
+      if(session?.active&&session.id===pending.sessionId){
+        showPrompt(pending);
+        return;
+      }
       await db.set('pendingPrompt',null);
-      return;
     }
-    showPrompt(pending);
+    const info=await db.get('pendingInfo');
+    if(info)showInfoMessage(info);
   }
 
   function unlockAudio(){
@@ -291,6 +322,7 @@
   }
 
   async function init(){
+    $('appVersion').textContent=`NS業務アシスト Version ${config.appVersion||'--'}`;
     await loadSettings();
     if('serviceWorker'in navigator){
       swRegistration=await navigator.serviceWorker.register('./service-worker.js');
@@ -306,10 +338,13 @@
     });
     navigator.serviceWorker?.addEventListener('message',event=>{
       if(event.data?.type==='assist-event')foregroundEvent(event.data.payload);
-      if(event.data?.type==='assist-open'&&event.data.payload)showPrompt(event.data.payload);
+      if(event.data?.type==='assist-open'&&event.data.payload){
+        if(event.data.payload.requiresAction)showPrompt(event.data.payload);
+        else showInfoMessage(event.data.payload);
+      }
     });
     window.addEventListener('online',()=>flush().catch(()=>{}));
-    const resume=()=>expirePreviousDaySession().then(()=>flush()).then(()=>render()).then(()=>restorePendingPrompt()).catch(()=>{});
+    const resume=()=>expirePreviousDaySession().then(()=>flush()).then(()=>render()).then(()=>restorePendingMessages()).catch(()=>{});
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)resume();});
     window.addEventListener('focus',resume);
     window.addEventListener('pageshow',resume);
@@ -317,7 +352,7 @@
     await flush().catch(()=>{});
     await expirePreviousDaySession();
     await render();
-    await restorePendingPrompt();
+    await restorePendingMessages();
   }
 
   window.addEventListener('load',()=>init().catch(error=>showMessage(error.message,true)));
