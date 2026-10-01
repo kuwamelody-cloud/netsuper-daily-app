@@ -271,17 +271,41 @@
 
   function unlockAudio(){
     try{
-      if(!audioContext){const AudioContextClass=window.AudioContext||window.webkitAudioContext;audioContext=AudioContextClass?new AudioContextClass():null;}
-      if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});
+      if(!audioContext||audioContext.state==='closed'||audioContext.state==='interrupted'){
+        voiceBuffers.clear();
+        const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+        audioContext=AudioContextClass?new AudioContextClass():null;
+      }
+      const context=audioContext;
+      if(context?.state!=='running')context.resume().catch(()=>{if(audioContext===context&&context.state==='closed'){audioContext=null;voiceBuffers.clear();}});
+      if(context&&context.state!=='closed'){
+        const source=context.createBufferSource();
+        source.buffer=context.createBuffer(1,1,22050);
+        source.connect(context.destination);
+        source.start(0);
+      }
     }catch{}
     return audioContext;
   }
 
+  async function readyAudioContext(){
+    let context=unlockAudio();
+    if(!context)throw Error('audio unavailable');
+    if(context.state!=='running')await context.resume();
+    if(context.state==='closed'||context.state==='interrupted'){
+      if(audioContext===context)audioContext=null;
+      voiceBuffers.clear();
+      context=unlockAudio();
+      if(!context)throw Error('audio unavailable');
+      if(context.state!=='running')await context.resume();
+    }
+    if(context.state!=='running')throw Error('audio unavailable');
+    return context;
+  }
+
   async function playAlert(repeat=1){
     try{
-      const context=unlockAudio();
-      if(!context)return;
-      if(context.state==='suspended')await context.resume();
+      const context=await readyAudioContext();
       for(let index=0;index<repeat;index++){
         const oscillator=context.createOscillator(),gain=context.createGain(),start=context.currentTime+.04+index*.8;
         oscillator.frequency.value=740;
@@ -298,9 +322,7 @@
   async function playVoice(key,repeat=1){
     const src=`./audio/${key}.mp3`;
     try{
-      const context=unlockAudio();
-      if(!context)throw Error('audio unavailable');
-      if(context.state==='suspended')await context.resume();
+      const context=await readyAudioContext();
       let buffer=voiceBuffers.get(key);
       if(!buffer){
         const response=await fetch(src);

@@ -1,5 +1,5 @@
 importScripts("./assistant-config.js","./assistant-db.js");
-const CACHE_NAME = "netsuper-business-record-v6-assist-6";
+const CACHE_NAME = "netsuper-business-record-v6-assist-7";
 const OWNED_CACHE_PREFIX = "netsuper-business-record-";
 const APP_SHELL = ["./","./index.html","./manifest.json","./assistant-config.js","./assistant-core.js","./assistant-db.js","./assistant.js","./icon-192.png?v=3","./icon-512.png?v=3","./apple-touch-icon.png?v=3","./audio/checkin.mp3","./audio/completion.mp3"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()))});

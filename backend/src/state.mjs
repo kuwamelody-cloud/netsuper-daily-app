@@ -49,10 +49,10 @@ export class AssistState{
   updateRoutes(installationId,sessionId,routes,now=Date.now()){
     const s=this.ownSession(installationId,sessionId);s.routes=routes;s.updatedAt=now;
     for(const r of s.reminders){
-      if(!r.route||r.deliveries.length)continue;
+      if(!r.route||r.completed)continue;
       const zero=routes[r.route]===0;
       if(zero){r.cancelled=true;r.cancelReason='route-zero';}
-      else if(r.cancelReason==='route-zero'&&r.dueAt>now){r.cancelled=false;r.cancelReason=null;}
+      else if(r.cancelReason==='route-zero'&&!r.deliveries.length&&r.dueAt>now){r.cancelled=false;r.cancelReason=null;}
     }
     this.log('routes-updated',{sessionId},now);return s;
   }

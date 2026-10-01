@@ -12,6 +12,11 @@ test('zero first route skips dispatch and arrival confirmations',()=>{
   assert.ok(!ids.includes('dispatch'));
   assert.ok(!ids.includes('arrival-1'));
 });
+test('first-route confirmations remain tied to route one so later zero entry cancels them',()=>{
+  const confirmations=core.makeSchedule({date,now:core.at(date,'09:00'),settings:{enabled:true},routes:[null,1,1,1,1,1]}).filter(x=>['dispatch','arrival-1'].includes(x.id));
+  assert.equal(confirmations.length,2);
+  assert.ok(confirmations.every(x=>x.route===1));
+});
 test('confirmation reminders have one five-minute retry',()=>{const list=core.makeSchedule({date,now:core.at(date,'09:00'),settings:{enabled:true},routes:[1]});for(const id of ['dispatch','arrival-1']){const x=list.find(x=>x.id===id);assert.equal(x.maxAttempts,2);assert.equal(x.retryDelayMs,300000);}});
 test('scheduled notices use OS notification data without app voice metadata',()=>{const list=core.makeSchedule({date,now:core.at(date,'09:00'),settings:{enabled:true},routes:[1,1,1,1,1,1]});for(const item of list){assert.equal('voiceKey'in item,false);assert.equal('repeat'in item,false);}});
 test('end reminders are fixed at 21:00, 21:30 and 22:00',()=>{const list=core.makeSchedule({date,now:core.at(date,'09:00'),settings:{enabled:true},routes:[]}).filter(x=>x.type==='end');assert.deepEqual(list.map(x=>x.dueAt),core.END_TIMES.map(t=>core.at(date,t)));});

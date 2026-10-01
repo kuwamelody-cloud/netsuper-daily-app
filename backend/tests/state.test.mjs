@@ -39,6 +39,14 @@ test('route zero cancels future route notice and can restore before due',()=>{
   state.updateRoutes(installationId,sessionId,{1:0},1000);assert.equal(state.nextDue(1000),null);
   state.updateRoutes(installationId,sessionId,{1:2},2000);assert.equal(state.nextDue(2000).at,5000);
 });
+test('route zero cancels a pending confirmation retry after its first delivery',()=>{
+  const state=setup({route:1}),first=state.claim(1000);
+  state.accepted(first.session,first.reminder,1000);
+  state.updateRoutes(installationId,sessionId,{1:0},2000);
+  assert.equal(first.reminder.cancelled,true);
+  assert.equal(first.reminder.cancelReason,'route-zero');
+  assert.equal(state.claim(301000),null);
+});
 
 test('ending session cancels all future reminders',()=>{
   const state=setup({dueAt:5000});state.end(installationId,sessionId,'ended',2000);assert.equal(state.nextDue(5000),null);

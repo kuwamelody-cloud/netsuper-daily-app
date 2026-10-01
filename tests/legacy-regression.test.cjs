@@ -52,6 +52,15 @@ test('only start and completion voice assets are bundled and cached with alert f
   assert.doesNotMatch(assistant,/playVoice\(payload\.voiceKey/);
   assert.doesNotMatch(assistant,/voicePlayer\.play\(\)/);
 });
+test('audio playback recreates unusable iOS contexts and primes playback from the user gesture',()=>{
+  const root=require('node:path').join(__dirname,'..');
+  const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');
+  assert.match(assistant,/audioContext\.state==='closed'\|\|audioContext\.state==='interrupted'/);
+  assert.match(assistant,/source\.buffer=context\.createBuffer\(1,1,22050\)/);
+  assert.match(assistant,/async function readyAudioContext\(\)/);
+  assert.match(assistant,/if\(context\.state!==\'running\'\)await context\.resume\(\)/);
+  assert.match(assistant,/voiceBuffers\.clear\(\)/);
+});
 test('notification tap restores confirmation and information messages whenever the PWA resumes',()=>{
   const root=require('node:path').join(__dirname,'..');
   const assistant=fs.readFileSync(require('node:path').join(root,'assistant.js'),'utf8');

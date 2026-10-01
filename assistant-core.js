@@ -35,8 +35,8 @@
     LOAD_TIMES.forEach((time,i)=>{if(s.loadEnabled&&routes[i]!==0)add(`load-${i+1}`,'info',time,`${i+1}便・積み込み`,` ${i+1}便、積み込み時刻になりました`.trim(),false,1,{route:i+1});});
     DELIVERY_TIMES.forEach((time,i)=>{if(s.deliveryEnabled&&routes[i]!==0)add(`delivery-${i+1}`,'info',time,`${i+1}便・配達開始`,`${i+1}便、配達開始時刻になりました`,false,1,{route:i+1});});
     if(routes[0]!==0){
-      add('dispatch','dispatch',s.dispatchTime,CONFIRMATIONS.dispatch.title,CONFIRMATIONS.dispatch.body,true,2,{actions:CONFIRMATIONS.dispatch.actions});
-      add('arrival-1','arrival',s.arrivalTime,CONFIRMATIONS.arrival.title,CONFIRMATIONS.arrival.body,true,2,{actions:CONFIRMATIONS.arrival.actions});
+      add('dispatch','dispatch',s.dispatchTime,CONFIRMATIONS.dispatch.title,CONFIRMATIONS.dispatch.body,true,2,{route:1,actions:CONFIRMATIONS.dispatch.actions});
+      add('arrival-1','arrival',s.arrivalTime,CONFIRMATIONS.arrival.title,CONFIRMATIONS.arrival.body,true,2,{route:1,actions:CONFIRMATIONS.arrival.actions});
     }
     END_TIMES.forEach((time,i)=>add(`end-${i+1}`,'end',time,CONFIRMATIONS.end.title,CONFIRMATIONS.end.body,true,1,{sequence:i+1,actions:CONFIRMATIONS.end.actions}));
     return events.sort((a,b)=>a.dueAt-b.dueAt);
